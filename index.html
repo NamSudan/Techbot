@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TechBot — Trợ lý Kỹ thuật</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #0c0e12;
+  --bg2:       #13161c;
+  --bg3:       #1a1e27;
+  --bg4:       #222736;
+  --border:    #2a2f3d;
+  --border2:   #353c50;
+  --accent:    #00d4ff;
+  --accent2:   #0099bb;
+  --accent3:   #00ffc8;
+  --text:      #e2e8f0;
+  --text2:     #8892a4;
+  --text3:     #4a5568;
+  --red:       #ff4d6d;
+  --amber:     #ffaa00;
+  --green:     #00d68f;
+  --purple:    #a78bfa;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-main: 'Syne', sans-serif;
+  --radius:    10px;
+  --sidebar-w: 280px;
+  --topbar-h:  52px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-main); overflow: hidden; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── LAYOUT ── */
+.app { display: flex; height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: transform .3s;
+}
+.sidebar-logo {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.logo-text { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.logo-sub  { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .08em; margin-top: 1px; }
+
+/* API status */
+.api-status {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.api-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+.api-label { color: var(--text2); font-family: var(--font-mono); }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.dot.off { background: var(--text3); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.status-val { display: flex; align-items: center; font-family: var(--font-mono); font-size: 10px; }
+.status-val.active { color: var(--green); }
+.status-val.idle   { color: var(--text3); }
+
+/* Sidebar nav */
+.sidebar-nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-section  { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); padding: 8px 10px 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px;
+  font-size: 13px; cursor: pointer; transition: all .15s;
+  color: var(--text2);
+}
+.nav-item:hover    { background: var(--bg3); color: var(--text); }
+.nav-item.active   { background: var(--bg4); color: var(--accent); }
+.nav-item svg      { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-size: 10px; font-family: var(--font-mono);
+  background: var(--bg4); padding: 2px 7px; border-radius: 20px; color: var(--text2);
+}
+.nav-item.active .nav-badge { background: rgba(0,212,255,.12); color: var(--accent); }
+
+/* File list in sidebar */
+.file-list { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.file-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  transition: background .15s; font-size: 12px; color: var(--text2);
+}
+.file-item:hover { background: var(--bg3); color: var(--text); }
+.file-item.active { background: rgba(0,212,255,.08); color: var(--accent); }
+.file-ext {
+  font-family: var(--font-mono); font-size: 9px; padding: 2px 5px;
+  border-radius: 4px; flex-shrink: 0; font-weight: 500;
+}
+.ext-pdf  { background: rgba(255,77,109,.15); color: var(--red); }
+.ext-dwg  { background: rgba(255,170,0,.15);  color: var(--amber); }
+.ext-xlsx { background: rgba(0,214,143,.15);  color: var(--green); }
+.ext-docx { background: rgba(167,139,250,.15);color: var(--purple); }
+.ext-png  { background: rgba(0,212,255,.15);  color: var(--accent); }
+.file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { font-family: var(--font-mono); font-size: 10px; color: var(--text3); flex-shrink: 0; }
+
+/* ── MAIN ── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* Topbar */
+.topbar {
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 12px;
+  background: var(--bg2); flex-shrink: 0;
+}
+.topbar-title { font-size: 14px; font-weight: 600; }
+.topbar-sub   { font-size: 11px; color: var(--text3); font-family: var(--font-mono); margin-left: 2px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.topbar-btn {
+  padding: 6px 12px; border-radius: 7px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--border2); background: transparent; color: var(--text2);
+  font-family: var(--font-main); transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.topbar-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.06); }
+.topbar-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.topbar-btn.primary:hover { background: var(--accent3); border-color: var(--accent3); }
+.model-tag {
+  font-family: var(--font-mono); font-size: 10px; padding: 3px 8px;
+  border-radius: 5px; border: 1px solid var(--border2); color: var(--text3);
+  display: flex; align-items: center; gap: 5px;
+}
+.model-tag .dot { margin: 0; }
+
+/* Chat + panels area */
+.content-area { flex: 1; display: flex; overflow: hidden; }
+
+/* Chat panel */
+.chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* Messages */
+.messages {
+  flex: 1; overflow-y: auto; padding: 24px 28px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* Welcome */
+.welcome {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 24px; text-align: center; padding: 40px;
+}
+.welcome-icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, rgba(0,212,255,.2), rgba(0,255,200,.1));
+  border: 1px solid rgba(0,212,255,.3); border-radius: 18px;
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+.welcome h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+.welcome p  { font-size: 13px; color: var(--text2); max-width: 420px; line-height: 1.6; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+.sug-btn {
+  padding: 8px 14px; border-radius: 20px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--border2); background: var(--bg3); color: var(--text2);
+  transition: all .15s; font-family: var(--font-main);
+}
+.sug-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.06); }
+
+/* Message row */
+.msg { display: flex; gap: 12px; animation: fadeUp .25s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.msg.user  { flex-direction: row-reverse; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+}
+.msg.user .avatar  { background: linear-gradient(135deg,var(--accent),var(--accent3)); color: var(--bg); }
+.msg.bot  .avatar  { background: var(--bg4); border: 1px solid var(--border); color: var(--accent); font-size: 16px; }
+.bubble {
+  max-width: 68%; padding: 12px 16px; border-radius: 14px;
+  font-size: 13.5px; line-height: 1.65;
+}
+.msg.user .bubble {
+  background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.2);
+  border-top-right-radius: 4px; color: var(--text);
+}
+.msg.bot .bubble {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+}
+.bubble-meta {
+  display: flex; gap: 8px; margin-top: 8px; align-items: center;
+}
+.meta-tag {
+  font-family: var(--font-mono); font-size: 10px; padding: 2px 7px;
+  border-radius: 4px; color: var(--text3);
+}
+.meta-tag.groq   { background: rgba(0,214,143,.1); color: var(--green); }
+.meta-tag.gemini { background: rgba(0,212,255,.1);  color: var(--accent); }
+.meta-tag.local  { background: rgba(167,139,250,.1);color: var(--purple); }
+.meta-time       { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-left: auto; }
+
+/* File attachment in bubble */
+.bubble-file {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg4); border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 12px; margin-top: 8px; font-size: 12px;
+}
+.bubble-file-icon { font-size: 20px; }
+.bubble-file-name { color: var(--text); font-weight: 500; }
+.bubble-file-size { color: var(--text3); font-size: 11px; font-family: var(--font-mono); }
+
+/* Drawing preview in bubble */
+.drawing-preview {
+  margin-top: 10px; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border); background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 160px; position: relative;
+}
+.drawing-preview img { max-width: 100%; display: block; }
+.drawing-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+  font-family: var(--font-mono); font-size: 10px; padding: 3px 8px;
+  border-radius: 5px; color: var(--accent);
+}
+
+/* Typing indicator */
+.typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.typing span {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: bounce .9s infinite;
+}
+.typing span:nth-child(2) { animation-delay: .15s; }
+.typing span:nth-child(3) { animation-delay: .30s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+/* Input area */
+.input-area {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+}
+.upload-previews {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.preview-chip {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 8px; font-size: 11px; color: var(--text2); font-family: var(--font-mono);
+}
+.preview-chip-remove {
+  cursor: pointer; color: var(--text3); font-size: 14px; line-height: 1;
+  transition: color .15s;
+}
+.preview-chip-remove:hover { color: var(--red); }
+
+.input-box {
+  display: flex; align-items: flex-end; gap: 10px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 10px 12px; transition: border-color .2s;
+}
+.input-box:focus-within { border-color: var(--accent); }
+.input-actions-left { display: flex; gap: 4px; }
+.input-btn {
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: transparent; color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; font-size: 15px;
+}
+.input-btn:hover { background: var(--bg4); color: var(--accent); }
+textarea {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: var(--font-main); font-size: 13.5px;
+  resize: none; line-height: 1.6; min-height: 22px; max-height: 140px;
+}
+textarea::placeholder { color: var(--text3); }
+.send-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: none;
+  background: var(--accent); color: var(--bg); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.send-btn:hover   { background: var(--accent3); transform: scale(1.05); }
+.send-btn:active  { transform: scale(.96); }
+.send-btn:disabled{ background: var(--bg4); color: var(--text3); transform: none; cursor: not-allowed; }
+.input-hint {
+  display: flex; gap: 16px; margin-top: 8px; padding: 0 4px;
+  font-size: 11px; color: var(--text3); font-family: var(--font-mono);
+}
+.hint-chip { display: flex; align-items: center; gap: 5px; }
+.hint-key {
+  background: var(--bg4); border: 1px solid var(--border); padding: 1px 6px;
+  border-radius: 4px; font-size: 10px;
+}
+
+/* ── RIGHT PANEL (file viewer) ── */
+.right-panel {
+  width: 340px; border-left: 1px solid var(--border);
+  background: var(--bg2); display: flex; flex-direction: column;
+  flex-shrink: 0;
+}
+.panel-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.panel-title { font-size: 13px; font-weight: 600; flex: 1; }
+.panel-close {
+  width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
+  background: transparent; border: none; color: var(--text3);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; font-size: 16px;
+}
+.panel-close:hover { background: var(--bg4); color: var(--text); }
+.panel-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+/* File info card */
+.file-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+}
+.file-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.file-card-icon { font-size: 28px; }
+.file-card-name { font-size: 13px; font-weight: 600; }
+.file-card-path { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; word-break: break-all; }
+.file-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-box {
+  background: var(--bg4); border-radius: 8px; padding: 10px;
+  border: 1px solid var(--border);
+}
+.stat-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 4px; }
+.stat-value { font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--accent); }
+
+/* Drawing viewer */
+.drawing-viewer {
+  background: #f5f5f5; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border); min-height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px; position: relative;
+}
+.drawing-placeholder {
+  text-align: center; color: #aaa; padding: 40px;
+}
+.drawing-placeholder-icon { font-size: 40px; margin-bottom: 10px; }
+.drawing-placeholder p { font-size: 12px; }
+.drawing-viewer-controls {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+.ctrl-btn {
+  flex: 1; padding: 7px; border-radius: 7px; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text2); font-size: 11px; cursor: pointer;
+  transition: all .15s; font-family: var(--font-main); text-align: center;
+}
+.ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Extracted data */
+.extracted-section { margin-bottom: 14px; }
+.ext-header {
+  font-size: 11px; color: var(--text3); font-family: var(--font-mono);
+  letter-spacing: .06em; margin-bottom: 8px;
+}
+.ext-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px;
+  font-family: var(--font-mono); margin: 3px; cursor: default;
+  border: 1px solid var(--border);
+}
+.ext-tag.layer  { background: rgba(0,212,255,.07); color: var(--accent); border-color: rgba(0,212,255,.2); }
+.ext-tag.dim    { background: rgba(255,170,0,.07); color: var(--amber); border-color: rgba(255,170,0,.2); }
+.ext-tag.text   { background: rgba(167,139,250,.07); color: var(--purple); border-color: rgba(167,139,250,.2); }
+.ext-tag.block  { background: rgba(0,214,143,.07); color: var(--green); border-color: rgba(0,214,143,.2); }
+
+/* Progress bar */
+.progress-wrap { margin-bottom: 14px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 6px; font-family: var(--font-mono); }
+.progress-bar { height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width .4s; }
+
+/* Upload drop zone */
+.dropzone {
+  border: 2px dashed var(--border2); border-radius: var(--radius);
+  padding: 30px 20px; text-align: center; cursor: pointer;
+  transition: all .2s; color: var(--text3);
+}
+.dropzone:hover, .dropzone.drag  { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.04); }
+.dropzone-icon { font-size: 32px; margin-bottom: 8px; }
+.dropzone p    { font-size: 12px; line-height: 1.5; }
+.dropzone span { font-size: 11px; font-family: var(--font-mono); color: var(--text3); }
+#file-input { display: none; }
+
+/* ── TABS in right panel ── */
+.panel-tabs {
+  display: flex; gap: 1px; padding: 10px 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.panel-tab {
+  padding: 8px 14px; font-size: 12px; cursor: pointer; border-radius: 8px 8px 0 0;
+  color: var(--text3); transition: all .15s; border: 1px solid transparent;
+  border-bottom: none; font-family: var(--font-main);
+}
+.panel-tab:hover  { color: var(--text2); }
+.panel-tab.active {
+  color: var(--accent); background: var(--bg3);
+  border-color: var(--border); border-bottom-color: var(--bg3);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── NOTIFICATIONS ── */
+.notif {
+  position: fixed; top: 16px; right: 16px; z-index: 9999;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; min-width: 240px;
+  animation: slideIn .25s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+@keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:none;opacity:1} }
+.notif.success { border-left: 3px solid var(--green); }
+.notif.info    { border-left: 3px solid var(--accent); }
+.notif.warning { border-left: 3px solid var(--amber); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .right-panel { display: none; }
+  .sidebar { position: absolute; z-index: 100; transform: translateX(-100%); }
+  .sidebar.open { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⚙</div>
+      <div>
+        <div class="logo-text">TechBot</div>
+        <div class="logo-sub">TECHNICAL AI ASSISTANT</div>
+      </div>
+    </div>
+
+    <div class="api-status">
+      <div class="api-row">
+        <span class="api-label">GROQ / Llama</span>
+        <span class="status-val active"><span class="dot on"></span>Online · Free</span>
+      </div>
+      <div class="api-row">
+        <span class="api-label">Gemini Flash</span>
+        <span class="status-val active"><span class="dot on"></span>Online · Vision</span>
+      </div>
+      <div class="api-row">
+        <span class="api-label">Local Offline</span>
+        <span class="status-val idle"><span class="dot off"></span>Standby</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">NAVIGATION</div>
+      <div class="nav-item active" onclick="switchNav(this,'chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="switchNav(this,'files')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Tài liệu
+        <span class="nav-badge">7</span>
+      </div>
+      <div class="nav-item" onclick="switchNav(this,'drawings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Bản vẽ
+        <span class="nav-badge">2</span>
+      </div>
+      <div class="nav-item" onclick="switchNav(this,'settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Cài đặt
+      </div>
+
+      <div class="nav-section" style="margin-top:8px">FILE ĐÃ INDEX</div>
+    </nav>
+
+    <div class="file-list">
+      <div class="file-item active" onclick="openFile('Bản vẽ tổng thể nhà máy.dwg','DWG','2.4 MB')">
+        <span class="file-ext ext-dwg">DWG</span>
+        <span class="file-name">Bản vẽ tổng thể nhà máy</span>
+        <span class="file-size">2.4M</span>
+      </div>
+      <div class="file-item" onclick="openFile('Sơ đồ điện P&ID hệ thống.pdf','PDF','5.1 MB')">
+        <span class="file-ext ext-pdf">PDF</span>
+        <span class="file-name">Sơ đồ điện P&ID hệ thống</span>
+        <span class="file-size">5.1M</span>
+      </div>
+      <div class="file-item" onclick="openFile('Danh mục vật tư Q3.xlsx','XLSX','320 KB')">
+        <span class="file-ext ext-xlsx">XLSX</span>
+        <span class="file-name">Danh mục vật tư Q3</span>
+        <span class="file-size">320K</span>
+      </div>
+      <div class="file-item" onclick="openFile('Báo cáo kiểm định kết cấu.docx','DOCX','890 KB')">
+        <span class="file-ext ext-docx">DOCX</span>
+        <span class="file-name">Báo cáo kiểm định kết cấu</span>
+        <span class="file-size">890K</span>
+      </div>
+      <div class="file-item" onclick="openFile('Chi tiết mối hàn góc.dwg','DWG','1.2 MB')">
+        <span class="file-ext ext-dwg">DWG</span>
+        <span class="file-name">Chi tiết mối hàn góc</span>
+        <span class="file-size">1.2M</span>
+      </div>
+      <div class="file-item" onclick="openFile('Ảnh hiện trường thi công.png','PNG','3.8 MB')">
+        <span class="file-ext ext-png">PNG</span>
+        <span class="file-name">Ảnh hiện trường thi công</span>
+        <span class="file-size">3.8M</span>
+      </div>
+      <div class="file-item" onclick="openFile('Thiết kế kết cấu thép.pdf','PDF','7.2 MB')">
+        <span class="file-ext ext-pdf">PDF</span>
+        <span class="file-name">Thiết kế kết cấu thép</span>
+        <span class="file-size">7.2M</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="topbar">
+      <button class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;padding:6px" id="menu-btn">☰</button>
+      <span class="topbar-title">Trợ lý Kỹ thuật</span>
+      <span class="topbar-sub">/ chat</span>
+      <div class="model-tag"><span class="dot on"></span>Groq · Llama 3.1</div>
+      <div class="model-tag" style="margin-left:4px"><span class="dot on"></span>Gemini Flash</div>
+      <div class="topbar-right">
+        <button class="topbar-btn" onclick="clearChat()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+          Xóa chat
+        </button>
+        <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload file
+        </button>
+        <input type="file" id="file-input" multiple accept=".pdf,.dwg,.dxf,.docx,.xlsx,.png,.jpg,.jpeg" onchange="handleFileUpload(this.files)"/>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <!-- Chat panel -->
+      <div class="chat-panel">
+        <div class="messages" id="messages">
+          <!-- Welcome screen -->
+          <div class="welcome" id="welcome">
+            <div class="welcome-icon">⚙</div>
+            <h2>Xin chào! Tôi là TechBot</h2>
+            <p>Trợ lý AI chuyên xử lý tài liệu kỹ thuật, bản vẽ CAD, sơ đồ P&ID và mọi loại file trong máy tính của bạn.</p>
+            <div class="suggestions">
+              <button class="sug-btn" onclick="sendSuggestion(this)">📐 Phân tích bản vẽ DWG</button>
+              <button class="sug-btn" onclick="sendSuggestion(this)">📄 Tóm tắt tài liệu PDF</button>
+              <button class="sug-btn" onclick="sendSuggestion(this)">🔍 Trích xuất danh sách vật tư</button>
+              <button class="sug-btn" onclick="sendSuggestion(this)">📊 Đọc file Excel kỹ thuật</button>
+              <button class="sug-btn" onclick="sendSuggestion(this)">🏗️ Kiểm tra thông số kết cấu</button>
+              <button class="sug-btn" onclick="sendSuggestion(this)">⚡ Đọc sơ đồ điện P&ID</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload previews -->
+        <div class="input-area">
+          <div class="upload-previews" id="upload-previews"></div>
+          <div class="input-box">
+            <div class="input-actions-left">
+              <button class="input-btn" title="Upload file" onclick="document.getElementById('file-input').click()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </button>
+              <button class="input-btn" title="Chọn file đã index" onclick="showNotif('Chọn file từ danh sách bên trái!','info')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </button>
+            </div>
+            <textarea id="chat-input" placeholder="Hỏi về tài liệu, bản vẽ kỹ thuật..." rows="1"
+              onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <div class="input-hint">
+            <span class="hint-chip"><span class="hint-key">Enter</span> gửi</span>
+            <span class="hint-chip"><span class="hint-key">Shift+Enter</span> xuống dòng</span>
+            <span class="hint-chip"><span class="hint-key">@file</span> tag file</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT PANEL ── -->
+      <div class="right-panel" id="right-panel">
+        <div class="panel-tabs">
+          <div class="panel-tab active" onclick="switchTab(this,'tab-info')">Thông tin</div>
+          <div class="panel-tab" onclick="switchTab(this,'tab-preview')">Xem trước</div>
+          <div class="panel-tab" onclick="switchTab(this,'tab-upload')">Upload</div>
+        </div>
+
+        <div class="panel-body">
+          <!-- Tab: Info -->
+          <div class="tab-content active" id="tab-info">
+            <div class="file-card">
+              <div class="file-card-header">
+                <span class="file-card-icon">📐</span>
+                <div>
+                  <div class="file-card-name" id="panel-filename">Bản vẽ tổng thể nhà máy.dwg</div>
+                  <div class="file-card-path" id="panel-filepath">C:/Projects/NhaMay/BanVe/</div>
+                </div>
+              </div>
+              <div class="file-stats">
+                <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value" id="s-type">DWG</div></div>
+                <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value" id="s-size">2.4 MB</div></div>
+                <div class="stat-box"><div class="stat-label">LAYERS</div><div class="stat-value" id="s-layers">14</div></div>
+                <div class="stat-box"><div class="stat-label">ĐỐI TƯỢNG</div><div class="stat-value" id="s-objects">2,847</div></div>
+              </div>
+            </div>
+
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Đã trích xuất</span><span style="color:var(--accent)">100%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Đã index vector</span><span style="color:var(--green)">87%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:87%;background:linear-gradient(90deg,var(--green),var(--accent3))"></div></div>
+            </div>
+
+            <div class="extracted-section">
+              <div class="ext-header">LAYERS PHÁT HIỆN</div>
+              <span class="ext-tag layer">WALL</span>
+              <span class="ext-tag layer">COLUMN</span>
+              <span class="ext-tag layer">BEAM</span>
+              <span class="ext-tag layer">SLAB</span>
+              <span class="ext-tag layer">STAIR</span>
+              <span class="ext-tag layer">DOOR</span>
+            </div>
+            <div class="extracted-section">
+              <div class="ext-header">KÍCH THƯỚC TRÍCH XUẤT</div>
+              <span class="ext-tag dim">L=24,500</span>
+              <span class="ext-tag dim">W=18,200</span>
+              <span class="ext-tag dim">H=6,000</span>
+              <span class="ext-tag dim">∅=200</span>
+            </div>
+            <div class="extracted-section">
+              <div class="ext-header">TEXT BLOCKS</div>
+              <span class="ext-tag text">TRỤC A-D</span>
+              <span class="ext-tag text">PHÒNG MÁY</span>
+              <span class="ext-tag text">KHO VẬT TƯ</span>
+            </div>
+            <div class="extracted-section">
+              <div class="ext-header">BLOCKS CAD</div>
+              <span class="ext-tag block">COLUMN_C1</span>
+              <span class="ext-tag block">DOOR_D1</span>
+              <span class="ext-tag block">WINDOW_W2</span>
+            </div>
+          </div>
+
+          <!-- Tab: Preview -->
+          <div class="tab-content" id="tab-preview">
+            <div class="drawing-viewer-controls">
+              <button class="ctrl-btn">🔍 Phóng to</button>
+              <button class="ctrl-btn">↕ Vừa màn hình</button>
+              <button class="ctrl-btn">🖨 In</button>
+            </div>
+            <div class="drawing-viewer" id="drawing-viewer">
+              <div class="drawing-badge">DWG Preview</div>
+              <div class="drawing-placeholder">
+                <div class="drawing-placeholder-icon">📐</div>
+                <p>Chọn bản vẽ để xem trước</p>
+                <p style="font-size:11px;margin-top:6px;color:#999">Hỗ trợ DWG, DXF, PDF, PNG</p>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);text-align:center">
+              Render bằng ezdxf + svg · Click để zoom
+            </div>
+          </div>
+
+          <!-- Tab: Upload -->
+          <div class="tab-content" id="tab-upload">
+            <div class="dropzone" id="dropzone"
+              ondragover="event.preventDefault();this.classList.add('drag')"
+              ondragleave="this.classList.remove('drag')"
+              ondrop="handleDrop(event)"
+              onclick="document.getElementById('file-input').click()">
+              <div class="dropzone-icon">📂</div>
+              <p><strong>Kéo thả file vào đây</strong><br>hoặc click để chọn</p>
+              <span>PDF · DWG · DXF · DOCX · XLSX · PNG · JPG</span>
+            </div>
+            <div style="margin-top:16px">
+              <div class="ext-header">TRẠNG THÁI XỬ LÝ</div>
+              <div id="processing-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── State ──
+let pendingFiles = [];
+let isTyping = false;
+
+// ── Demo messages ──
+const demoConvo = [
+  { role:'user', text:'Bản vẽ tổng thể nhà máy có bao nhiêu tầng và kích thước tổng thể là bao nhiêu?', file:null },
+  { role:'bot',  text:'Từ file <strong>Bản vẽ tổng thể nhà máy.dwg</strong> đã trích xuất:\n\n• <strong>Số tầng:</strong> 2 tầng (tầng trệt + tầng lửng)\n• <strong>Kích thước tổng thể:</strong> 24,500mm × 18,200mm\n• <strong>Chiều cao tầng trệt:</strong> 6,000mm\n• <strong>Diện tích sàn:</strong> ~445 m²\n• <strong>Hệ lưới cột:</strong> Trục A–D (dọc) × 1–7 (ngang)\n\nFile có 14 layers và 2,847 đối tượng CAD. Bạn muốn xem chi tiết phần nào?', engine:'gemini', time:'09:42' },
+  { role:'user', text:'Liệt kê danh sách vật tư trong file Excel Q3', file:'Danh mục vật tư Q3.xlsx' },
+  { role:'bot',  text:'Đã đọc file <strong>Danh mục vật tư Q3.xlsx</strong> — tìm thấy <strong>4 sheet, 247 dòng dữ liệu</strong>.\n\nTop 5 vật tư theo số lượng:\n\n<code style="font-family:var(--font-mono);font-size:12px;display:block;background:var(--bg4);padding:10px;border-radius:8px;margin-top:8px;line-height:1.8">1. Thép hình I200    — 48 thanh\n2. Bulong M16×60     — 320 cái\n3. Tấm panel 50mm    — 180 m²\n4. Ống thép DN100    — 24 cây\n5. Bản mã 200×200    — 96 tấm</code>\n\nTổng giá trị ước tính: <strong style="color:var(--accent)">482,500,000 VNĐ</strong>. Xuất Excel tổng hợp không?', engine:'groq', time:'09:44' },
+];
+
+window.onload = () => {
+  // Show demo after delay
+  setTimeout(() => {
+    demoConvo.forEach((m, i) => {
+      setTimeout(() => addMessage(m.role, m.text, m.engine, m.time, m.file), i * 600);
+    });
+  }, 500);
+};
+
+// ── Add message ──
+function addMessage(role, text, engine, time, fileName) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = `<div class="avatar">${role === 'user' ? 'U' : '⚙'}</div>`;
+  const engineTag = engine ? `<span class="meta-tag ${engine}">${engine === 'gemini' ? '✦ Gemini Flash' : engine === 'groq' ? '⚡ Groq' : '◉ Local'}</span>` : '';
+  const timeStr = time || new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  const meta = role === 'bot' ? `<div class="bubble-meta">${engineTag}<span class="meta-time">${timeStr}</span></div>` : '';
+  const fileChip = fileName ? `<div class="bubble-file"><span class="bubble-file-icon">${getFileIcon(fileName)}</span><div><div class="bubble-file-name">${fileName}</div><div class="bubble-file-size">Đã đính kèm</div></div></div>` : '';
+
+  div.innerHTML = `${avatar}<div class="bubble">${fileChip}<div>${text.replace(/\n/g,'<br>')}</div>${meta}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function getFileIcon(name) {
+  if (name.match(/\.(dwg|dxf)$/i)) return '📐';
+  if (name.match(/\.pdf$/i)) return '📄';
+  if (name.match(/\.(xlsx|xls)$/i)) return '📊';
+  if (name.match(/\.(docx|doc)$/i)) return '📝';
+  if (name.match(/\.(png|jpg|jpeg)$/i)) return '🖼️';
+  return '📎';
+}
+
+// ── Conversation history (multi-turn) ──
+let conversationHistory = [];
+
+// ── Send message ──
+async function sendMessage() {
+  const ta = document.getElementById('chat-input');
+  const text = ta.value.trim();
+  if (!text && pendingFiles.length === 0) return;
+
+  const fileName = pendingFiles.length > 0 ? pendingFiles[0].name : null;
+  const fileObj  = pendingFiles.length > 0 ? pendingFiles[0] : null;
+
+  addMessage('user', text || '(Đính kèm file)', null, null, fileName);
+  ta.value = ''; ta.style.height = '';
+  document.getElementById('upload-previews').innerHTML = '';
+
+  showTyping();
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    let userContent = text || '';
+    if (fileName) userContent += `\n[File đính kèm: ${fileName}]`;
+
+    // Push vào history
+    conversationHistory.push({ role: 'user', content: userContent });
+
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: conversationHistory,
+        fileName: fileName || null
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const reply  = data.reply  || '(Không có phản hồi)';
+    const engine = data.engine || 'groq';
+
+    // Push assistant vào history
+    conversationHistory.push({ role: 'assistant', content: reply });
+
+    removeTyping();
+    addMessage('bot', reply.replace(/\n/g, '<br>'), engine, null, null);
+
+  } catch (err) {
+    removeTyping();
+    addMessage('bot',
+      `⚠️ <strong>Lỗi kết nối API:</strong> ${err.message}<br><br>` +
+      `Kiểm tra:<br>` +
+      `• Biến môi trường <code>GROQ_API_KEY</code> đã được set chưa?<br>` +
+      `• File <code>api/chat.js</code> đã deploy chưa?`,
+      'local', null, null);
+  } finally {
+    pendingFiles = [];
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = 'typing-msg';
+  div.innerHTML = `<div class="avatar">⚙</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() {
+  const t = document.getElementById('typing-msg');
+  if (t) t.remove();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+function sendSuggestion(btn) {
+  document.getElementById('chat-input').value = btn.textContent.replace(/^[\p{Emoji}]\s*/u,'');
+  sendMessage();
+}
+function clearChat() {
+  document.getElementById('messages').innerHTML = '<div class="welcome" id="welcome"><div class="welcome-icon">⚙</div><h2>Chat đã được xóa</h2><p>Bắt đầu cuộc hội thoại mới!</p></div>';
+  conversationHistory = [];
+  showNotif('Đã xóa lịch sử chat','info');
+}
+
+// ── File handling ──
+function handleFileUpload(files) {
+  Array.from(files).forEach(f => {
+    pendingFiles.push(f);
+    const prev = document.getElementById('upload-previews');
+    const chip = document.createElement('div');
+    chip.className = 'preview-chip';
+    chip.innerHTML = `${getFileIcon(f.name)} ${f.name} <span class="preview-chip-remove" onclick="removePreview(this,'${f.name}')">×</span>`;
+    prev.appendChild(chip);
+    addToProcessingList(f.name);
+  });
+  showNotif(`Đã thêm ${files.length} file — nhấn Enter để gửi`, 'success');
+}
+function removePreview(el, name) {
+  el.closest('.preview-chip').remove();
+  pendingFiles = pendingFiles.filter(f => f.name !== name);
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag');
+  handleFileUpload(e.dataTransfer.files);
+}
+function addToProcessingList(name) {
+  const list = document.getElementById('processing-list');
+  const item = document.createElement('div');
+  item.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px';
+  item.innerHTML = `<span>${getFileIcon(name)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${name}</span><span style="font-family:var(--font-mono);font-size:10px;color:var(--green)">✓ Sẵn sàng</span>`;
+  list.appendChild(item);
+}
+
+// ── Panel / Tab ──
+function openFile(name, type, size) {
+  document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-filename').textContent = name;
+  document.getElementById('s-type').textContent = type;
+  document.getElementById('s-size').textContent = size;
+  if (type === 'DWG') { document.getElementById('s-layers').textContent = Math.floor(8+Math.random()*12); document.getElementById('s-objects').textContent = (Math.floor(1000+Math.random()*3000)).toLocaleString(); }
+  showNotif(`Đã chọn: ${name}`, 'info');
+}
+function switchTab(el, id) {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+function switchNav(el, id) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelector('.topbar-sub').textContent = '/ ' + id;
+}
+
+// ── Notifications ──
+function showNotif(msg, type = 'info') {
+  const icons = { success:'✓', info:'ℹ', warning:'⚠' };
+  const n = document.createElement('div');
+  n.className = `notif ${type}`;
+  n.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3000);
+}
+
+// Responsive
+function checkResponsive() {
+  const menuBtn = document.getElementById('menu-btn');
+  menuBtn.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkResponsive);
+checkResponsive();
+</script>
+</body>
+</html>

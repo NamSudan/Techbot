@@ -1,0 +1,12 @@
+{
+  "name": "techbot-chatbot",
+  "version": "1.0.0",
+  "description": "TechBot - Trợ lý AI tài liệu kỹ thuật",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
