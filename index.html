@@ -763,18 +763,43 @@ function getFileIcon(name) {
   return '📎';
 }
 
-// ── Conversation history (multi-turn) ──
+// ── Conversation history ──
 let conversationHistory = [];
 
-// ── Send message ──
+// ── Đọc nội dung file thành text ──
+async function readFileAsText(file) {
+  return new Promise((resolve) => {
+    // File ảnh → trả về base64 để gửi lên Gemini
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => resolve({ type: 'image', data: e.target.result, name: file.name });
+      reader.readAsDataURL(file);
+      return;
+    }
+    // File text / docx / pdf → đọc text thuần
+    const reader = new FileReader();
+    reader.onload = e => {
+      let content = e.target.result;
+      // Nếu là binary (docx/pdf), lấy text visible
+      if (typeof content !== 'string') content = '[File nhị phân — cần backend parser]';
+      resolve({ type: 'text', data: content.slice(0, 8000), name: file.name }); // giới hạn 8000 ký tự
+    };
+    reader.onerror = () => resolve({ type: 'text', data: '[Không đọc được file]', name: file.name });
+    // Thử đọc dạng text trước
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+// ── Send message — gọi API thật ──
 async function sendMessage() {
   const ta = document.getElementById('chat-input');
   const text = ta.value.trim();
   if (!text && pendingFiles.length === 0) return;
 
-  const fileName = pendingFiles.length > 0 ? pendingFiles[0].name : null;
   const fileObj  = pendingFiles.length > 0 ? pendingFiles[0] : null;
+  const fileName = fileObj ? fileObj.name : null;
 
+  // Hiển thị message user
   addMessage('user', text || '(Đính kèm file)', null, null, fileName);
   ta.value = ''; ta.style.height = '';
   document.getElementById('upload-previews').innerHTML = '';
@@ -783,12 +808,27 @@ async function sendMessage() {
   document.getElementById('send-btn').disabled = true;
 
   try {
+    // Đọc nội dung file nếu có
     let userContent = text || '';
-    if (fileName) userContent += `\n[File đính kèm: ${fileName}]`;
+    let fileContent = null;
 
-    // Push vào history
+    if (fileObj) {
+      showNotif(`Đang đọc file ${fileName}...`, 'info');
+      fileContent = await readFileAsText(fileObj);
+
+      if (fileContent.type === 'text' && fileContent.data && !fileContent.data.includes('[')) {
+        // Có nội dung text đọc được → gửi kèm
+        userContent += `\n\n---\n📎 Nội dung file "${fileName}":\n${fileContent.data}`;
+      } else {
+        // File binary (docx/pdf/ảnh) → chỉ báo tên
+        userContent += `\n\n[File đính kèm: ${fileName} — loại ${fileObj.type || 'unknown'}]`;
+      }
+    }
+
+    // Thêm vào history
     conversationHistory.push({ role: 'user', content: userContent });
 
+    // Gọi API
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -799,15 +839,15 @@ async function sendMessage() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
     }
 
     const data = await res.json();
     const reply  = data.reply  || '(Không có phản hồi)';
     const engine = data.engine || 'groq';
 
-    // Push assistant vào history
+    // Lưu vào history
     conversationHistory.push({ role: 'assistant', content: reply });
 
     removeTyping();
@@ -816,10 +856,10 @@ async function sendMessage() {
   } catch (err) {
     removeTyping();
     addMessage('bot',
-      `⚠️ <strong>Lỗi kết nối API:</strong> ${err.message}<br><br>` +
+      `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>` +
       `Kiểm tra:<br>` +
-      `• Biến môi trường <code>GROQ_API_KEY</code> đã được set chưa?<br>` +
-      `• File <code>api/chat.js</code> đã deploy chưa?`,
+      `• <code>GROQ_API_KEY</code> đã set trên Vercel chưa?<br>` +
+      `• Đã Redeploy sau khi thêm env var chưa?`,
       'local', null, null);
   } finally {
     pendingFiles = [];
