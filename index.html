@@ -27,18 +27,16 @@
   --font-mono: 'JetBrains Mono', monospace;
   --font-main: 'Syne', sans-serif;
   --radius:    10px;
-  --sidebar-w: 280px;
+  --sidebar-w: 290px;
   --topbar-h:  52px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-main); overflow: hidden; }
 
-/* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
-/* ── LAYOUT ── */
 .app { display: flex; height: 100vh; }
 
 /* ── SIDEBAR ── */
@@ -46,13 +44,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   width: var(--sidebar-w);
   background: var(--bg2);
   border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
+  display: flex; flex-direction: column; flex-shrink: 0;
   transition: transform .3s;
 }
 .sidebar-logo {
-  padding: 18px 20px 14px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 10px;
 }
@@ -60,21 +56,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   width: 32px; height: 32px;
   background: linear-gradient(135deg, var(--accent), var(--accent3));
   border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
 }
 .logo-text { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
 .logo-sub  { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .08em; margin-top: 1px; }
 
-/* API status */
 .api-status {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 5px;
 }
 .api-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
 .api-label { color: var(--text2); font-family: var(--font-mono); }
-.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 .dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
 .dot.off { background: var(--text3); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
@@ -82,52 +75,133 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .status-val.active { color: var(--green); }
 .status-val.idle   { color: var(--text3); }
 
-/* Sidebar nav */
-.sidebar-nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
-.nav-section  { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); padding: 8px 10px 4px; }
+.sidebar-nav { padding: 10px 8px 4px; display: flex; flex-direction: column; gap: 2px; }
+.nav-section  { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); padding: 6px 10px 3px; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px; border-radius: 8px;
-  font-size: 13px; cursor: pointer; transition: all .15s;
-  color: var(--text2);
+  padding: 8px 10px; border-radius: 8px;
+  font-size: 13px; cursor: pointer; transition: all .15s; color: var(--text2);
 }
 .nav-item:hover    { background: var(--bg3); color: var(--text); }
 .nav-item.active   { background: var(--bg4); color: var(--accent); }
-.nav-item svg      { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-item svg      { width: 15px; height: 15px; flex-shrink: 0; }
 .nav-badge {
   margin-left: auto; font-size: 10px; font-family: var(--font-mono);
   background: var(--bg4); padding: 2px 7px; border-radius: 20px; color: var(--text2);
 }
 .nav-item.active .nav-badge { background: rgba(0,212,255,.12); color: var(--accent); }
 
-/* File list in sidebar */
-.file-list { flex: 1; overflow-y: auto; padding: 8px 10px; }
-.file-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 8px; cursor: pointer;
-  transition: background .15s; font-size: 12px; color: var(--text2);
+/* ── PROJECT FILE TREE ── */
+.project-list { flex: 1; overflow-y: auto; padding: 6px 8px 12px; }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px 4px;
 }
-.file-item:hover { background: var(--bg3); color: var(--text); }
-.file-item.active { background: rgba(0,212,255,.08); color: var(--accent); }
+.section-label { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); }
+.section-add-btn {
+  width: 20px; height: 20px; border-radius: 5px; border: none;
+  background: transparent; color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1;
+  transition: all .15s;
+}
+.section-add-btn:hover { background: var(--bg4); color: var(--accent); }
+
+/* Empty state */
+.sidebar-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 32px 20px; text-align: center; color: var(--text3);
+  font-size: 12px; line-height: 1.6;
+}
+.sidebar-empty-icon { font-size: 32px; opacity: .4; }
+
+/* Project folder */
+.project-folder {
+  border-radius: 10px; overflow: hidden; margin-bottom: 6px;
+  border: 1px solid var(--border); background: var(--bg3);
+  transition: border-color .15s;
+}
+.project-folder:hover { border-color: var(--border2); }
+.project-folder.open  { border-color: rgba(0,212,255,.18); }
+
+.folder-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px; cursor: pointer;
+  transition: background .15s; user-select: none;
+}
+.folder-header:hover { background: rgba(255,255,255,.03); }
+
+.folder-chevron {
+  width: 14px; height: 14px; flex-shrink: 0;
+  color: var(--text3); transition: transform .2s;
+}
+.project-folder.open .folder-chevron { transform: rotate(90deg); }
+
+.folder-icon {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  background: rgba(0,212,255,.12);
+}
+
+.folder-meta { flex: 1; min-width: 0; }
+.folder-name { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-sub  { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 1px; }
+
+.folder-badge {
+  font-size: 10px; font-family: var(--font-mono);
+  background: var(--bg4); border: 1px solid var(--border);
+  padding: 2px 7px; border-radius: 20px; color: var(--text3); flex-shrink: 0;
+}
+.project-folder.open .folder-badge { background: rgba(0,212,255,.1); border-color: rgba(0,212,255,.2); color: var(--accent); }
+
+.folder-files {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s ease;
+  border-top: 0px solid transparent;
+}
+.project-folder.open .folder-files {
+  max-height: 500px;
+  border-top: 1px solid var(--border);
+}
+
+.folder-file {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px 7px 20px; cursor: pointer;
+  transition: background .12s; font-size: 12px; color: var(--text2);
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.folder-file:last-child { border-bottom: none; }
+.folder-file:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.folder-file.active { background: rgba(0,212,255,.07); color: var(--accent); }
+
 .file-ext {
   font-family: var(--font-mono); font-size: 9px; padding: 2px 5px;
   border-radius: 4px; flex-shrink: 0; font-weight: 500;
 }
-.ext-pdf  { background: rgba(255,77,109,.15); color: var(--red); }
-.ext-dwg  { background: rgba(255,170,0,.15);  color: var(--amber); }
-.ext-xlsx { background: rgba(0,214,143,.15);  color: var(--green); }
-.ext-docx { background: rgba(167,139,250,.15);color: var(--purple); }
-.ext-png  { background: rgba(0,212,255,.15);  color: var(--accent); }
+.ext-pdf  { background: rgba(255,77,109,.15);  color: var(--red); }
+.ext-dwg  { background: rgba(255,170,0,.15);   color: var(--amber); }
+.ext-dxf  { background: rgba(255,170,0,.15);   color: var(--amber); }
+.ext-xlsx { background: rgba(0,214,143,.15);   color: var(--green); }
+.ext-xls  { background: rgba(0,214,143,.15);   color: var(--green); }
+.ext-docx { background: rgba(167,139,250,.15); color: var(--purple); }
+.ext-doc  { background: rgba(167,139,250,.15); color: var(--purple); }
+.ext-png  { background: rgba(0,212,255,.15);   color: var(--accent); }
+.ext-jpg  { background: rgba(0,212,255,.15);   color: var(--accent); }
+.ext-jpeg { background: rgba(0,212,255,.15);   color: var(--accent); }
+
 .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-size { font-family: var(--font-mono); font-size: 10px; color: var(--text3); flex-shrink: 0; }
+
+.folder-empty {
+  padding: 14px 20px; font-size: 11px; color: var(--text3);
+  font-family: var(--font-mono); display: flex; align-items: center; gap: 8px;
+}
 
 /* ── MAIN ── */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-/* Topbar */
 .topbar {
-  height: var(--topbar-h);
-  border-bottom: 1px solid var(--border);
+  height: var(--topbar-h); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 20px; gap: 12px;
   background: var(--bg2); flex-shrink: 0;
 }
@@ -149,128 +223,74 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .model-tag .dot { margin: 0; }
 
-/* Chat + panels area */
 .content-area { flex: 1; display: flex; overflow: hidden; }
-
-/* Chat panel */
 .chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-/* Messages */
 .messages {
   flex: 1; overflow-y: auto; padding: 24px 28px;
   display: flex; flex-direction: column; gap: 6px;
 }
 
-/* Welcome */
-.welcome {
+/* Empty chat state */
+.chat-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: 100%; gap: 24px; text-align: center; padding: 40px;
+  height: 100%; gap: 16px; text-align: center; padding: 40px; color: var(--text3);
 }
-.welcome-icon {
-  width: 64px; height: 64px;
-  background: linear-gradient(135deg, rgba(0,212,255,.2), rgba(0,255,200,.1));
-  border: 1px solid rgba(0,212,255,.3); border-radius: 18px;
-  display: flex; align-items: center; justify-content: center; font-size: 28px;
+.chat-empty-icon {
+  width: 56px; height: 56px;
+  background: rgba(0,212,255,.06);
+  border: 1px solid rgba(0,212,255,.12); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; font-size: 24px; opacity: .6;
 }
-.welcome h2 { font-size: 22px; font-weight: 700; color: var(--text); }
-.welcome p  { font-size: 13px; color: var(--text2); max-width: 420px; line-height: 1.6; }
-.suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
-.sug-btn {
-  padding: 8px 14px; border-radius: 20px; font-size: 12px; cursor: pointer;
-  border: 1px solid var(--border2); background: var(--bg3); color: var(--text2);
-  transition: all .15s; font-family: var(--font-main);
-}
-.sug-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.06); }
+.chat-empty p { font-size: 13px; color: var(--text3); max-width: 320px; line-height: 1.6; }
 
-/* Message row */
 .msg { display: flex; gap: 12px; animation: fadeUp .25s ease; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-.msg.user  { flex-direction: row-reverse; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+.msg.user { flex-direction: row-reverse; }
 .avatar {
   width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
 }
-.msg.user .avatar  { background: linear-gradient(135deg,var(--accent),var(--accent3)); color: var(--bg); }
-.msg.bot  .avatar  { background: var(--bg4); border: 1px solid var(--border); color: var(--accent); font-size: 16px; }
+.msg.user .avatar { background: linear-gradient(135deg,var(--accent),var(--accent3)); color: var(--bg); }
+.msg.bot  .avatar { background: var(--bg4); border: 1px solid var(--border); color: var(--accent); font-size: 16px; }
 .bubble {
   max-width: 68%; padding: 12px 16px; border-radius: 14px;
   font-size: 13.5px; line-height: 1.65;
 }
-.msg.user .bubble {
-  background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.2);
-  border-top-right-radius: 4px; color: var(--text);
-}
-.msg.bot .bubble {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-top-left-radius: 4px;
-}
-.bubble-meta {
-  display: flex; gap: 8px; margin-top: 8px; align-items: center;
-}
-.meta-tag {
-  font-family: var(--font-mono); font-size: 10px; padding: 2px 7px;
-  border-radius: 4px; color: var(--text3);
-}
+.msg.user .bubble { background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.2); border-top-right-radius: 4px; }
+.msg.bot  .bubble { background: var(--bg3); border: 1px solid var(--border); border-top-left-radius: 4px; }
+.bubble-meta { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.meta-tag { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; }
 .meta-tag.groq   { background: rgba(0,214,143,.1); color: var(--green); }
 .meta-tag.gemini { background: rgba(0,212,255,.1);  color: var(--accent); }
 .meta-tag.local  { background: rgba(167,139,250,.1);color: var(--purple); }
-.meta-time       { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-left: auto; }
+.meta-time { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-left: auto; }
 
-/* File attachment in bubble */
 .bubble-file {
   display: flex; align-items: center; gap: 10px;
   background: var(--bg4); border: 1px solid var(--border); border-radius: 8px;
-  padding: 9px 12px; margin-top: 8px; font-size: 12px;
+  padding: 9px 12px; margin-bottom: 8px; font-size: 12px;
 }
 .bubble-file-icon { font-size: 20px; }
 .bubble-file-name { color: var(--text); font-weight: 500; }
 .bubble-file-size { color: var(--text3); font-size: 11px; font-family: var(--font-mono); }
 
-/* Drawing preview in bubble */
-.drawing-preview {
-  margin-top: 10px; border-radius: 10px; overflow: hidden;
-  border: 1px solid var(--border); background: #fff;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 160px; position: relative;
-}
-.drawing-preview img { max-width: 100%; display: block; }
-.drawing-badge {
-  position: absolute; top: 8px; right: 8px;
-  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
-  font-family: var(--font-mono); font-size: 10px; padding: 3px 8px;
-  border-radius: 5px; color: var(--accent);
-}
-
-/* Typing indicator */
 .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
-.typing span {
-  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
-  animation: bounce .9s infinite;
-}
+.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce .9s infinite; }
 .typing span:nth-child(2) { animation-delay: .15s; }
 .typing span:nth-child(3) { animation-delay: .30s; }
 @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
 
-/* Input area */
-.input-area {
-  padding: 16px 20px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--bg2);
-}
-.upload-previews {
-  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
-}
+/* ── INPUT ── */
+.input-area { padding: 14px 20px 18px; border-top: 1px solid var(--border); background: var(--bg2); }
+.upload-previews { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .preview-chip {
   display: flex; align-items: center; gap: 6px; padding: 5px 10px;
   background: var(--bg4); border: 1px solid var(--border2);
   border-radius: 8px; font-size: 11px; color: var(--text2); font-family: var(--font-mono);
 }
-.preview-chip-remove {
-  cursor: pointer; color: var(--text3); font-size: 14px; line-height: 1;
-  transition: color .15s;
-}
+.preview-chip-remove { cursor: pointer; color: var(--text3); font-size: 14px; transition: color .15s; }
 .preview-chip-remove:hover { color: var(--red); }
-
 .input-box {
   display: flex; align-items: flex-end; gap: 10px;
   background: var(--bg3); border: 1px solid var(--border2);
@@ -281,8 +301,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .input-btn {
   width: 32px; height: 32px; border-radius: 8px; border: none;
   background: transparent; color: var(--text3); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; transition: all .15s; font-size: 15px;
 }
 .input-btn:hover { background: var(--bg4); color: var(--accent); }
 textarea {
@@ -294,8 +313,7 @@ textarea::placeholder { color: var(--text3); }
 .send-btn {
   width: 36px; height: 36px; border-radius: 10px; border: none;
   background: var(--accent); color: var(--bg); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0;
 }
 .send-btn:hover   { background: var(--accent3); transform: scale(1.05); }
 .send-btn:active  { transform: scale(.96); }
@@ -305,32 +323,24 @@ textarea::placeholder { color: var(--text3); }
   font-size: 11px; color: var(--text3); font-family: var(--font-mono);
 }
 .hint-chip { display: flex; align-items: center; gap: 5px; }
-.hint-key {
-  background: var(--bg4); border: 1px solid var(--border); padding: 1px 6px;
-  border-radius: 4px; font-size: 10px;
-}
+.hint-key { background: var(--bg4); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
 
-/* ── RIGHT PANEL (file viewer) ── */
+/* ── RIGHT PANEL ── */
 .right-panel {
   width: 340px; border-left: 1px solid var(--border);
-  background: var(--bg2); display: flex; flex-direction: column;
-  flex-shrink: 0;
+  background: var(--bg2); display: flex; flex-direction: column; flex-shrink: 0;
 }
-.panel-header {
-  padding: 14px 16px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
+.panel-tabs { display: flex; gap: 1px; padding: 10px 12px 0; border-bottom: 1px solid var(--border); }
+.panel-tab {
+  padding: 8px 14px; font-size: 12px; cursor: pointer; border-radius: 8px 8px 0 0;
+  color: var(--text3); transition: all .15s; border: 1px solid transparent; border-bottom: none;
 }
-.panel-title { font-size: 13px; font-weight: 600; flex: 1; }
-.panel-close {
-  width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
-  background: transparent; border: none; color: var(--text3);
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s; font-size: 16px;
-}
-.panel-close:hover { background: var(--bg4); color: var(--text); }
+.panel-tab:hover { color: var(--text2); }
+.panel-tab.active { color: var(--accent); background: var(--bg3); border-color: var(--border); border-bottom-color: var(--bg3); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 .panel-body { flex: 1; overflow-y: auto; padding: 16px; }
 
-/* File info card */
 .file-card {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
@@ -340,28 +350,19 @@ textarea::placeholder { color: var(--text3); }
 .file-card-name { font-size: 13px; font-weight: 600; }
 .file-card-path { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; word-break: break-all; }
 .file-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.stat-box {
-  background: var(--bg4); border-radius: 8px; padding: 10px;
-  border: 1px solid var(--border);
-}
+.stat-box { background: var(--bg4); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
 .stat-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 4px; }
 .stat-value { font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--accent); }
 
-/* Drawing viewer */
 .drawing-viewer {
   background: #f5f5f5; border-radius: 8px; overflow: hidden;
   border: 1px solid var(--border); min-height: 200px;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 14px; position: relative;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 14px; position: relative;
 }
-.drawing-placeholder {
-  text-align: center; color: #aaa; padding: 40px;
-}
+.drawing-placeholder { text-align: center; color: #aaa; padding: 40px; }
 .drawing-placeholder-icon { font-size: 40px; margin-bottom: 10px; }
 .drawing-placeholder p { font-size: 12px; }
-.drawing-viewer-controls {
-  display: flex; gap: 6px; margin-bottom: 8px;
-}
+.drawing-viewer-controls { display: flex; gap: 6px; margin-bottom: 8px; }
 .ctrl-btn {
   flex: 1; padding: 7px; border-radius: 7px; border: 1px solid var(--border2);
   background: var(--bg3); color: var(--text2); font-size: 11px; cursor: pointer;
@@ -369,58 +370,87 @@ textarea::placeholder { color: var(--text3); }
 }
 .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Extracted data */
 .extracted-section { margin-bottom: 14px; }
-.ext-header {
-  font-size: 11px; color: var(--text3); font-family: var(--font-mono);
-  letter-spacing: .06em; margin-bottom: 8px;
-}
+.ext-header { font-size: 11px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .06em; margin-bottom: 8px; }
 .ext-tag {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: 6px; font-size: 11px;
-  font-family: var(--font-mono); margin: 3px; cursor: default;
-  border: 1px solid var(--border);
+  font-family: var(--font-mono); margin: 3px; cursor: default; border: 1px solid var(--border);
 }
-.ext-tag.layer  { background: rgba(0,212,255,.07); color: var(--accent); border-color: rgba(0,212,255,.2); }
-.ext-tag.dim    { background: rgba(255,170,0,.07); color: var(--amber); border-color: rgba(255,170,0,.2); }
-.ext-tag.text   { background: rgba(167,139,250,.07); color: var(--purple); border-color: rgba(167,139,250,.2); }
-.ext-tag.block  { background: rgba(0,214,143,.07); color: var(--green); border-color: rgba(0,214,143,.2); }
+.ext-tag.layer { background: rgba(0,212,255,.07); color: var(--accent); border-color: rgba(0,212,255,.2); }
+.ext-tag.dim   { background: rgba(255,170,0,.07); color: var(--amber); border-color: rgba(255,170,0,.2); }
+.ext-tag.text  { background: rgba(167,139,250,.07); color: var(--purple); border-color: rgba(167,139,250,.2); }
+.ext-tag.block { background: rgba(0,214,143,.07); color: var(--green); border-color: rgba(0,214,143,.2); }
 
-/* Progress bar */
 .progress-wrap { margin-bottom: 14px; }
 .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 6px; font-family: var(--font-mono); }
 .progress-bar { height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width .4s; }
 
-/* Upload drop zone */
+/* Panel — no file selected */
+.panel-no-file {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; gap: 10px; text-align: center; color: var(--text3);
+}
+.panel-no-file-icon { font-size: 32px; opacity: .35; margin-bottom: 4px; }
+.panel-no-file p { font-size: 12px; line-height: 1.6; }
+
+/* ── UPLOAD TAB ── */
+.upload-project-area { display: flex; flex-direction: column; gap: 10px; }
+
+.create-project-card {
+  background: var(--bg3); border: 1px dashed var(--border2); border-radius: 10px;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.create-project-card h4 { font-size: 12px; font-weight: 600; color: var(--text2); }
+
+.project-name-input {
+  background: var(--bg4); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 8px 12px; font-size: 12px; color: var(--text); font-family: var(--font-main);
+  outline: none; transition: border-color .2s; width: 100%;
+}
+.project-name-input:focus { border-color: var(--accent); }
+.project-name-input::placeholder { color: var(--text3); }
+
 .dropzone {
   border: 2px dashed var(--border2); border-radius: var(--radius);
-  padding: 30px 20px; text-align: center; cursor: pointer;
-  transition: all .2s; color: var(--text3);
+  padding: 24px 16px; text-align: center; cursor: pointer; transition: all .2s; color: var(--text3);
 }
-.dropzone:hover, .dropzone.drag  { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.04); }
-.dropzone-icon { font-size: 32px; margin-bottom: 8px; }
+.dropzone:hover, .dropzone.drag { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.04); }
+.dropzone-icon { font-size: 28px; margin-bottom: 8px; }
 .dropzone p    { font-size: 12px; line-height: 1.5; }
-.dropzone span { font-size: 11px; font-family: var(--font-mono); color: var(--text3); }
-#file-input { display: none; }
+.dropzone span { font-size: 10px; font-family: var(--font-mono); color: var(--text3); }
 
-/* ── TABS in right panel ── */
-.panel-tabs {
-  display: flex; gap: 1px; padding: 10px 12px 0;
-  border-bottom: 1px solid var(--border);
+.create-project-btn {
+  padding: 9px; border-radius: 8px; border: none;
+  background: var(--accent); color: var(--bg); cursor: pointer;
+  font-size: 12px; font-weight: 600; font-family: var(--font-main);
+  transition: all .15s; width: 100%;
 }
-.panel-tab {
-  padding: 8px 14px; font-size: 12px; cursor: pointer; border-radius: 8px 8px 0 0;
-  color: var(--text3); transition: all .15s; border: 1px solid transparent;
-  border-bottom: none; font-family: var(--font-main);
+.create-project-btn:hover { background: var(--accent3); }
+
+.processing-projects { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.processing-project {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
 }
-.panel-tab:hover  { color: var(--text2); }
-.panel-tab.active {
-  color: var(--accent); background: var(--bg3);
-  border-color: var(--border); border-bottom-color: var(--bg3);
+.processing-project-header {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
 }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+.proc-icon { font-size: 18px; }
+.proc-meta { flex: 1; }
+.proc-name  { font-size: 12px; font-weight: 600; color: var(--text); }
+.proc-count { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 1px; }
+.proc-status { font-size: 10px; font-family: var(--font-mono); }
+.proc-status.done    { color: var(--green); }
+.proc-status.pending { color: var(--amber); }
+.processing-project-files { border-top: 1px solid var(--border); }
+.proc-file-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; font-size: 11px; color: var(--text2);
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.proc-file-row:last-child { border-bottom: none; }
+.proc-file-status { margin-left: auto; font-size: 10px; font-family: var(--font-mono); color: var(--green); }
 
 /* ── NOTIFICATIONS ── */
 .notif {
@@ -428,8 +458,7 @@ textarea::placeholder { color: var(--text3); }
   background: var(--bg3); border: 1px solid var(--border2);
   border-radius: 10px; padding: 12px 16px;
   display: flex; align-items: center; gap: 10px;
-  font-size: 13px; min-width: 240px;
-  animation: slideIn .25s ease;
+  font-size: 13px; min-width: 240px; animation: slideIn .25s ease;
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
 @keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:none;opacity:1} }
@@ -437,7 +466,37 @@ textarea::placeholder { color: var(--text3); }
 .notif.info    { border-left: 3px solid var(--accent); }
 .notif.warning { border-left: 3px solid var(--amber); }
 
-/* ── RESPONSIVE ── */
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px;
+  padding: 24px; width: 360px; display: flex; flex-direction: column; gap: 14px;
+  transform: scale(.95); transition: transform .2s;
+}
+.modal-overlay.show .modal { transform: scale(1); }
+.modal h3 { font-size: 16px; font-weight: 700; }
+.modal p   { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.modal-input {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: 9px;
+  padding: 10px 14px; font-size: 13px; color: var(--text); font-family: var(--font-main);
+  outline: none; transition: border-color .2s; width: 100%;
+}
+.modal-input:focus { border-color: var(--accent); }
+.modal-actions { display: flex; gap: 8px; }
+.modal-btn {
+  flex: 1; padding: 10px; border-radius: 9px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); cursor: pointer; font-size: 13px;
+  font-family: var(--font-main); transition: all .15s;
+}
+.modal-btn:hover { background: var(--bg3); color: var(--text); }
+.modal-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.modal-btn.primary:hover { background: var(--accent3); }
+
 @media (max-width: 900px) {
   .right-panel { display: none; }
   .sidebar { position: absolute; z-index: 100; transform: translateX(-100%); }
@@ -478,61 +537,29 @@ textarea::placeholder { color: var(--text3); }
       <div class="nav-item active" onclick="switchNav(this,'chat')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Chat
-        <span class="nav-badge">3</span>
+        <span class="nav-badge" id="nav-chat-badge">0</span>
       </div>
       <div class="nav-item" onclick="switchNav(this,'files')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
         Tài liệu
-        <span class="nav-badge">7</span>
-      </div>
-      <div class="nav-item" onclick="switchNav(this,'drawings')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        Bản vẽ
-        <span class="nav-badge">2</span>
+        <span class="nav-badge" id="nav-files-badge">0</span>
       </div>
       <div class="nav-item" onclick="switchNav(this,'settings')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Cài đặt
       </div>
-
-      <div class="nav-section" style="margin-top:8px">FILE ĐÃ INDEX</div>
     </nav>
 
-    <div class="file-list">
-      <div class="file-item active" onclick="openFile('Bản vẽ tổng thể nhà máy.dwg','DWG','2.4 MB')">
-        <span class="file-ext ext-dwg">DWG</span>
-        <span class="file-name">Bản vẽ tổng thể nhà máy</span>
-        <span class="file-size">2.4M</span>
-      </div>
-      <div class="file-item" onclick="openFile('Sơ đồ điện P&ID hệ thống.pdf','PDF','5.1 MB')">
-        <span class="file-ext ext-pdf">PDF</span>
-        <span class="file-name">Sơ đồ điện P&ID hệ thống</span>
-        <span class="file-size">5.1M</span>
-      </div>
-      <div class="file-item" onclick="openFile('Danh mục vật tư Q3.xlsx','XLSX','320 KB')">
-        <span class="file-ext ext-xlsx">XLSX</span>
-        <span class="file-name">Danh mục vật tư Q3</span>
-        <span class="file-size">320K</span>
-      </div>
-      <div class="file-item" onclick="openFile('Báo cáo kiểm định kết cấu.docx','DOCX','890 KB')">
-        <span class="file-ext ext-docx">DOCX</span>
-        <span class="file-name">Báo cáo kiểm định kết cấu</span>
-        <span class="file-size">890K</span>
-      </div>
-      <div class="file-item" onclick="openFile('Chi tiết mối hàn góc.dwg','DWG','1.2 MB')">
-        <span class="file-ext ext-dwg">DWG</span>
-        <span class="file-name">Chi tiết mối hàn góc</span>
-        <span class="file-size">1.2M</span>
-      </div>
-      <div class="file-item" onclick="openFile('Ảnh hiện trường thi công.png','PNG','3.8 MB')">
-        <span class="file-ext ext-png">PNG</span>
-        <span class="file-name">Ảnh hiện trường thi công</span>
-        <span class="file-size">3.8M</span>
-      </div>
-      <div class="file-item" onclick="openFile('Thiết kế kết cấu thép.pdf','PDF','7.2 MB')">
-        <span class="file-ext ext-pdf">PDF</span>
-        <span class="file-name">Thiết kế kết cấu thép</span>
-        <span class="file-size">7.2M</span>
+    <!-- PROJECT FILE TREE -->
+    <div class="section-header">
+      <span class="section-label">TỆP ĐÃ INDEX</span>
+      <button class="section-add-btn" title="Thêm tệp mới" onclick="openNewProjectModal()">+</button>
+    </div>
+
+    <div class="project-list" id="project-list">
+      <div class="sidebar-empty" id="sidebar-empty">
+        <div class="sidebar-empty-icon">📂</div>
+        <p>Chưa có tệp nào<br>Tải tệp lên để bắt đầu</p>
       </div>
     </div>
   </aside>
@@ -542,7 +569,7 @@ textarea::placeholder { color: var(--text3); }
     <div class="topbar">
       <button class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;padding:6px" id="menu-btn">☰</button>
       <span class="topbar-title">Trợ lý Kỹ thuật</span>
-      <span class="topbar-sub">/ chat</span>
+      <span class="topbar-sub" id="topbar-sub">/ chat</span>
       <div class="model-tag"><span class="dot on"></span>Groq · Llama 3.1</div>
       <div class="model-tag" style="margin-left:4px"><span class="dot on"></span>Gemini Flash</div>
       <div class="topbar-right">
@@ -550,43 +577,30 @@ textarea::placeholder { color: var(--text3); }
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
           Xóa chat
         </button>
-        <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
+        <button class="topbar-btn primary" onclick="triggerFileInput()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload file
+          Upload tệp
         </button>
-        <input type="file" id="file-input" multiple accept=".pdf,.dwg,.dxf,.docx,.xlsx,.png,.jpg,.jpeg" onchange="handleFileUpload(this.files)"/>
       </div>
     </div>
 
     <div class="content-area">
-      <!-- Chat panel -->
       <div class="chat-panel">
         <div class="messages" id="messages">
-          <!-- Welcome screen -->
-          <div class="welcome" id="welcome">
-            <div class="welcome-icon">⚙</div>
-            <h2>Xin chào! Tôi là TechBot</h2>
-            <p>Trợ lý AI chuyên xử lý tài liệu kỹ thuật, bản vẽ CAD, sơ đồ P&ID và mọi loại file trong máy tính của bạn.</p>
-            <div class="suggestions">
-              <button class="sug-btn" onclick="sendSuggestion(this)">📐 Phân tích bản vẽ DWG</button>
-              <button class="sug-btn" onclick="sendSuggestion(this)">📄 Tóm tắt tài liệu PDF</button>
-              <button class="sug-btn" onclick="sendSuggestion(this)">🔍 Trích xuất danh sách vật tư</button>
-              <button class="sug-btn" onclick="sendSuggestion(this)">📊 Đọc file Excel kỹ thuật</button>
-              <button class="sug-btn" onclick="sendSuggestion(this)">🏗️ Kiểm tra thông số kết cấu</button>
-              <button class="sug-btn" onclick="sendSuggestion(this)">⚡ Đọc sơ đồ điện P&ID</button>
-            </div>
+          <div class="chat-empty" id="chat-empty">
+            <div class="chat-empty-icon">⚙</div>
+            <p>Tải tệp lên hoặc bắt đầu đặt câu hỏi kỹ thuật</p>
           </div>
         </div>
 
-        <!-- Upload previews -->
         <div class="input-area">
           <div class="upload-previews" id="upload-previews"></div>
           <div class="input-box">
             <div class="input-actions-left">
-              <button class="input-btn" title="Upload file" onclick="document.getElementById('file-input').click()">
+              <button class="input-btn" title="Upload file" onclick="triggerFileInput()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </button>
-              <button class="input-btn" title="Chọn file đã index" onclick="showNotif('Chọn file từ danh sách bên trái!','info')">
+              <button class="input-btn" title="Chọn tệp đã index" onclick="showNotif('Chọn tệp dự án bên trái!','info')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               </button>
             </div>
@@ -609,64 +623,17 @@ textarea::placeholder { color: var(--text3); }
         <div class="panel-tabs">
           <div class="panel-tab active" onclick="switchTab(this,'tab-info')">Thông tin</div>
           <div class="panel-tab" onclick="switchTab(this,'tab-preview')">Xem trước</div>
-          <div class="panel-tab" onclick="switchTab(this,'tab-upload')">Upload</div>
+          <div class="panel-tab" onclick="switchTab(this,'tab-upload')">Upload tệp</div>
         </div>
 
         <div class="panel-body">
           <!-- Tab: Info -->
           <div class="tab-content active" id="tab-info">
-            <div class="file-card">
-              <div class="file-card-header">
-                <span class="file-card-icon">📐</span>
-                <div>
-                  <div class="file-card-name" id="panel-filename">Bản vẽ tổng thể nhà máy.dwg</div>
-                  <div class="file-card-path" id="panel-filepath">C:/Projects/NhaMay/BanVe/</div>
-                </div>
+            <div id="tab-info-content">
+              <div class="panel-no-file">
+                <div class="panel-no-file-icon">📋</div>
+                <p>Chọn một file từ danh sách bên trái để xem thông tin chi tiết</p>
               </div>
-              <div class="file-stats">
-                <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value" id="s-type">DWG</div></div>
-                <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value" id="s-size">2.4 MB</div></div>
-                <div class="stat-box"><div class="stat-label">LAYERS</div><div class="stat-value" id="s-layers">14</div></div>
-                <div class="stat-box"><div class="stat-label">ĐỐI TƯỢNG</div><div class="stat-value" id="s-objects">2,847</div></div>
-              </div>
-            </div>
-
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Đã trích xuất</span><span style="color:var(--accent)">100%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-            </div>
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Đã index vector</span><span style="color:var(--green)">87%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:87%;background:linear-gradient(90deg,var(--green),var(--accent3))"></div></div>
-            </div>
-
-            <div class="extracted-section">
-              <div class="ext-header">LAYERS PHÁT HIỆN</div>
-              <span class="ext-tag layer">WALL</span>
-              <span class="ext-tag layer">COLUMN</span>
-              <span class="ext-tag layer">BEAM</span>
-              <span class="ext-tag layer">SLAB</span>
-              <span class="ext-tag layer">STAIR</span>
-              <span class="ext-tag layer">DOOR</span>
-            </div>
-            <div class="extracted-section">
-              <div class="ext-header">KÍCH THƯỚC TRÍCH XUẤT</div>
-              <span class="ext-tag dim">L=24,500</span>
-              <span class="ext-tag dim">W=18,200</span>
-              <span class="ext-tag dim">H=6,000</span>
-              <span class="ext-tag dim">∅=200</span>
-            </div>
-            <div class="extracted-section">
-              <div class="ext-header">TEXT BLOCKS</div>
-              <span class="ext-tag text">TRỤC A-D</span>
-              <span class="ext-tag text">PHÒNG MÁY</span>
-              <span class="ext-tag text">KHO VẬT TƯ</span>
-            </div>
-            <div class="extracted-section">
-              <div class="ext-header">BLOCKS CAD</div>
-              <span class="ext-tag block">COLUMN_C1</span>
-              <span class="ext-tag block">DOOR_D1</span>
-              <span class="ext-tag block">WINDOW_W2</span>
             </div>
           </div>
 
@@ -677,33 +644,44 @@ textarea::placeholder { color: var(--text3); }
               <button class="ctrl-btn">↕ Vừa màn hình</button>
               <button class="ctrl-btn">🖨 In</button>
             </div>
-            <div class="drawing-viewer" id="drawing-viewer">
-              <div class="drawing-badge">DWG Preview</div>
+            <div class="drawing-viewer">
+              <div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:5px;color:var(--accent)">Preview</div>
               <div class="drawing-placeholder">
                 <div class="drawing-placeholder-icon">📐</div>
                 <p>Chọn bản vẽ để xem trước</p>
                 <p style="font-size:11px;margin-top:6px;color:#999">Hỗ trợ DWG, DXF, PDF, PNG</p>
               </div>
             </div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);text-align:center">
-              Render bằng ezdxf + svg · Click để zoom
-            </div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);text-align:center">Render bằng ezdxf + svg · Click để zoom</div>
           </div>
 
           <!-- Tab: Upload -->
           <div class="tab-content" id="tab-upload">
-            <div class="dropzone" id="dropzone"
-              ondragover="event.preventDefault();this.classList.add('drag')"
-              ondragleave="this.classList.remove('drag')"
-              ondrop="handleDrop(event)"
-              onclick="document.getElementById('file-input').click()">
-              <div class="dropzone-icon">📂</div>
-              <p><strong>Kéo thả file vào đây</strong><br>hoặc click để chọn</p>
-              <span>PDF · DWG · DXF · DOCX · XLSX · PNG · JPG</span>
-            </div>
-            <div style="margin-top:16px">
-              <div class="ext-header">TRẠNG THÁI XỬ LÝ</div>
-              <div id="processing-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+            <div class="upload-project-area">
+              <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:4px">
+                Tạo <strong>tệp dự án</strong> để gom nhóm các file liên quan.
+              </div>
+
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">BƯỚC 1 — ĐẶT TÊN TỆP</div>
+              <input class="project-name-input" id="new-proj-name" placeholder="VD: Nhà máy xi măng Hà Tiên..." />
+
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin:6px 0 4px">BƯỚC 2 — THÊM FILE</div>
+              <div class="dropzone" id="dropzone-panel"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleDropPanel(event)"
+                onclick="triggerFileInput()">
+                <div class="dropzone-icon">📂</div>
+                <p><strong>Kéo thả file vào đây</strong><br>hoặc click để chọn</p>
+                <span>PDF · DWG · DXF · DOCX · XLSX · PNG · JPG</span>
+              </div>
+              <div id="panel-file-list" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+
+              <button class="create-project-btn" onclick="createProjectFromPanel()">
+                ＋ Tạo tệp & index
+              </button>
+
+              <div id="processing-projects" class="processing-projects"></div>
             </div>
           </div>
         </div>
@@ -712,155 +690,312 @@ textarea::placeholder { color: var(--text3); }
   </main>
 </div>
 
+<!-- ── NEW PROJECT MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h3>➕ Tạo tệp dự án mới</h3>
+    <p>Đặt tên cho tệp dự án để gom nhóm các file liên quan.</p>
+    <input class="modal-input" id="modal-proj-name" placeholder="Tên tệp dự án..." />
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="document.getElementById('modal-overlay').classList.remove('show')">Hủy</button>
+      <button class="modal-btn primary" onclick="createProjectFromModal()">Tạo tệp</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" multiple accept=".pdf,.dwg,.dxf,.docx,.xlsx,.png,.jpg,.jpeg" onchange="handleFileUpload(this.files)" style="display:none"/>
+
 <script>
-// ── State ──
 let pendingFiles = [];
-let isTyping = false;
+let conversationHistory = [];
+let projectCount = 0;
+let panelPendingFiles = [];
+let totalFileCount = 0;
+let msgCount = 0;
 
-// ── Demo messages ──
-const demoConvo = [
-  { role:'user', text:'Bản vẽ tổng thể nhà máy có bao nhiêu tầng và kích thước tổng thể là bao nhiêu?', file:null },
-  { role:'bot',  text:'Từ file <strong>Bản vẽ tổng thể nhà máy.dwg</strong> đã trích xuất:\n\n• <strong>Số tầng:</strong> 2 tầng (tầng trệt + tầng lửng)\n• <strong>Kích thước tổng thể:</strong> 24,500mm × 18,200mm\n• <strong>Chiều cao tầng trệt:</strong> 6,000mm\n• <strong>Diện tích sàn:</strong> ~445 m²\n• <strong>Hệ lưới cột:</strong> Trục A–D (dọc) × 1–7 (ngang)\n\nFile có 14 layers và 2,847 đối tượng CAD. Bạn muốn xem chi tiết phần nào?', engine:'gemini', time:'09:42' },
-  { role:'user', text:'Liệt kê danh sách vật tư trong file Excel Q3', file:'Danh mục vật tư Q3.xlsx' },
-  { role:'bot',  text:'Đã đọc file <strong>Danh mục vật tư Q3.xlsx</strong> — tìm thấy <strong>4 sheet, 247 dòng dữ liệu</strong>.\n\nTop 5 vật tư theo số lượng:\n\n<code style="font-family:var(--font-mono);font-size:12px;display:block;background:var(--bg4);padding:10px;border-radius:8px;margin-top:8px;line-height:1.8">1. Thép hình I200    — 48 thanh\n2. Bulong M16×60     — 320 cái\n3. Tấm panel 50mm    — 180 m²\n4. Ống thép DN100    — 24 cây\n5. Bản mã 200×200    — 96 tấm</code>\n\nTổng giá trị ước tính: <strong style="color:var(--accent)">482,500,000 VNĐ</strong>. Xuất Excel tổng hợp không?', engine:'groq', time:'09:44' },
-];
-
-window.onload = () => {
-  // Show demo after delay
-  setTimeout(() => {
-    demoConvo.forEach((m, i) => {
-      setTimeout(() => addMessage(m.role, m.text, m.engine, m.time, m.file), i * 600);
-    });
-  }, 500);
-};
-
-// ── Add message ──
-function addMessage(role, text, engine, time, fileName) {
-  const welcome = document.getElementById('welcome');
-  if (welcome) welcome.remove();
-
-  const msgs = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-
-  const avatar = `<div class="avatar">${role === 'user' ? 'U' : '⚙'}</div>`;
-  const engineTag = engine ? `<span class="meta-tag ${engine}">${engine === 'gemini' ? '✦ Gemini Flash' : engine === 'groq' ? '⚡ Groq' : '◉ Local'}</span>` : '';
-  const timeStr = time || new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
-  const meta = role === 'bot' ? `<div class="bubble-meta">${engineTag}<span class="meta-time">${timeStr}</span></div>` : '';
-  const fileChip = fileName ? `<div class="bubble-file"><span class="bubble-file-icon">${getFileIcon(fileName)}</span><div><div class="bubble-file-name">${fileName}</div><div class="bubble-file-size">Đã đính kèm</div></div></div>` : '';
-
-  div.innerHTML = `${avatar}<div class="bubble">${fileChip}<div>${text.replace(/\n/g,'<br>')}</div>${meta}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+function triggerFileInput() {
+  document.getElementById('file-input').value = '';
+  document.getElementById('file-input').click();
 }
 
+// ── Detect file type icon & category ──
 function getFileIcon(name) {
-  if (name.match(/\.(dwg|dxf)$/i)) return '📐';
-  if (name.match(/\.pdf$/i)) return '📄';
-  if (name.match(/\.(xlsx|xls)$/i)) return '📊';
-  if (name.match(/\.(docx|doc)$/i)) return '📝';
-  if (name.match(/\.(png|jpg|jpeg)$/i)) return '🖼️';
+  if (/\.(dwg|dxf)$/i.test(name))  return '📐';
+  if (/\.pdf$/i.test(name))         return '📄';
+  if (/\.(xlsx|xls)$/i.test(name)) return '📊';
+  if (/\.(docx|doc)$/i.test(name)) return '📝';
+  if (/\.(png|jpg|jpeg)$/i.test(name)) return '🖼️';
   return '📎';
 }
 
-// ── Conversation history ──
-let conversationHistory = [];
+function getExt(name) {
+  const m = name.match(/\.([a-zA-Z]+)$/);
+  return m ? m[1].toUpperCase() : 'FILE';
+}
 
-// ── Đọc nội dung file thành text ──
-async function readFileAsText(file) {
-  return new Promise((resolve) => {
-    // File ảnh → trả về base64 để gửi lên Gemini
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = e => resolve({ type: 'image', data: e.target.result, name: file.name });
-      reader.readAsDataURL(file);
-      return;
-    }
-    // File text / docx / pdf → đọc text thuần
-    const reader = new FileReader();
-    reader.onload = e => {
-      let content = e.target.result;
-      // Nếu là binary (docx/pdf), lấy text visible
-      if (typeof content !== 'string') content = '[File nhị phân — cần backend parser]';
-      resolve({ type: 'text', data: content.slice(0, 8000), name: file.name }); // giới hạn 8000 ký tự
-    };
-    reader.onerror = () => resolve({ type: 'text', data: '[Không đọc được file]', name: file.name });
-    // Thử đọc dạng text trước
-    reader.readAsText(file, 'UTF-8');
+function detectProjectIcon(files) {
+  // Auto-detect based on file mix
+  const names = files.map(f => f.name.toLowerCase()).join(' ');
+  if (/dwg|dxf/.test(names)) return '📐';
+  if (/pdf/.test(names))     return '📄';
+  if (/xlsx|xls/.test(names)) return '📊';
+  if (/png|jpg/.test(names)) return '🖼️';
+  return '📁';
+}
+
+// ── Toggle folder ──
+function toggleFolder(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ── Open file ──
+function openFile(el, name, type, size, project) {
+  document.querySelectorAll('.folder-file').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+
+  const ext = getExt(name);
+  const icon = getFileIcon(name);
+
+  let statsHtml = '';
+  if (ext === 'DWG' || ext === 'DXF') {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">LAYERS</div><div class="stat-value">${Math.floor(8+Math.random()*12)}</div></div>
+      <div class="stat-box"><div class="stat-label">ĐỐI TƯỢNG</div><div class="stat-value">${Math.floor(500+Math.random()*3000).toLocaleString()}</div></div>`;
+  } else if (ext === 'PDF') {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">TRANG</div><div class="stat-value">${Math.floor(4+Math.random()*40)}</div></div>
+      <div class="stat-box"><div class="stat-label">TRẠNG THÁI</div><div class="stat-value" style="color:var(--green)">OK</div></div>`;
+  } else if (ext === 'XLSX' || ext === 'XLS') {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">SHEET</div><div class="stat-value">${Math.floor(1+Math.random()*6)}</div></div>
+      <div class="stat-box"><div class="stat-label">DÒNG DỮ LIỆU</div><div class="stat-value">${Math.floor(20+Math.random()*500)}</div></div>`;
+  } else {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">TRẠNG THÁI</div><div class="stat-value" style="color:var(--green)">OK</div></div>
+      <div class="stat-box"><div class="stat-label">DỰ ÁN</div><div class="stat-value" style="font-size:10px;color:var(--text2)">${project.substring(0,8)}</div></div>`;
+  }
+
+  document.getElementById('tab-info-content').innerHTML = `
+    <div class="file-card">
+      <div class="file-card-header">
+        <span class="file-card-icon">${icon}</span>
+        <div>
+          <div class="file-card-name">${name}</div>
+          <div class="file-card-path">${project} / ${ext.toLowerCase()}</div>
+        </div>
+      </div>
+      <div class="file-stats">${statsHtml}</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Đã trích xuất</span><span style="color:var(--accent)">100%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Đã index vector</span><span style="color:var(--green)">84%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:84%;background:linear-gradient(90deg,var(--green),var(--accent3))"></div></div>
+    </div>`;
+
+  // Switch to info tab
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector('.panel-tab').classList.add('active');
+  document.getElementById('tab-info').classList.add('active');
+
+  showNotif(`📂 ${project} → ${name}`, 'info');
+}
+
+// ── Modal ──
+function openNewProjectModal() {
+  document.getElementById('modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('modal-proj-name').focus(), 200);
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+function createProjectFromModal() {
+  const name = document.getElementById('modal-proj-name').value.trim();
+  if (!name) { showNotif('Vui lòng đặt tên tệp!', 'warning'); return; }
+  addProjectToSidebar(name, [], '📁');
+  document.getElementById('modal-overlay').classList.remove('show');
+  document.getElementById('modal-proj-name').value = '';
+  showNotif(`✓ Đã tạo tệp "${name}"`, 'success');
+}
+
+// ── Create project from panel ──
+function createProjectFromPanel() {
+  const name = document.getElementById('new-proj-name').value.trim();
+  if (!name) { showNotif('Vui lòng đặt tên tệp!', 'warning'); return; }
+  if (panelPendingFiles.length === 0) { showNotif('Vui lòng thêm ít nhất một file!', 'warning'); return; }
+  const icon = detectProjectIcon(panelPendingFiles);
+  addProjectToSidebar(name, panelPendingFiles, icon);
+  addProcessingProject(name, icon, panelPendingFiles);
+  document.getElementById('new-proj-name').value = '';
+  document.getElementById('panel-file-list').innerHTML = '';
+  panelPendingFiles = [];
+  showNotif(`✓ Tệp "${name}" đang được index`, 'success');
+}
+
+// ── Add project to sidebar ──
+function addProjectToSidebar(name, files, icon) {
+  document.getElementById('sidebar-empty')?.remove();
+  const id = 'proj-' + (projectCount++);
+  const fileCount = files.length;
+  const totalSize = files.reduce((s, f) => s + f.size, 0);
+  const sizeFmt = totalSize > 1048576 ? (totalSize/1048576).toFixed(1) + ' MB'
+                : totalSize > 1024 ? Math.round(totalSize/1024) + ' KB' : totalSize + ' B';
+  const subText = fileCount > 0 ? `${fileCount} file · ${sizeFmt}` : 'Chưa có file';
+
+  const filesHtml = files.length > 0
+    ? files.map(f => {
+        const ext = getExt(f.name);
+        const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+'M' : Math.round(f.size/1024)+'K';
+        return `<div class="folder-file" onclick="openFile(this,'${f.name.replace(/'/g,"\\'")}','${ext}','${sz}','${name.replace(/'/g,"\\'")}')">
+          <span class="file-ext ext-${ext.toLowerCase()}">${ext}</span>
+          <span class="file-name">${f.name}</span>
+          <span class="file-size">${sz}</span>
+        </div>`;
+      }).join('')
+    : `<div class="folder-empty"><span>📂</span><span>Kéo file vào để thêm</span></div>`;
+
+  const div = document.createElement('div');
+  div.className = 'project-folder open';
+  div.id = id;
+  div.innerHTML = `
+    <div class="folder-header" onclick="toggleFolder('${id}')">
+      <svg class="folder-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      <div class="folder-icon">${icon}</div>
+      <div class="folder-meta">
+        <div class="folder-name">${name}</div>
+        <div class="folder-sub">${subText}</div>
+      </div>
+      <span class="folder-badge">${fileCount}</span>
+    </div>
+    <div class="folder-files">${filesHtml}</div>`;
+  document.getElementById('project-list').prepend(div);
+
+  totalFileCount += fileCount;
+  document.getElementById('nav-files-badge').textContent = totalFileCount;
+}
+
+// ── Processing project card ──
+function addProcessingProject(name, icon, files) {
+  const container = document.getElementById('processing-projects');
+  const fileRows = files.map(f => `
+    <div class="proc-file-row">
+      <span>${getFileIcon(f.name)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <span class="proc-file-status">✓ Sẵn sàng</span>
+    </div>`).join('');
+
+  const card = document.createElement('div');
+  card.className = 'processing-project';
+  card.innerHTML = `
+    <div class="processing-project-header">
+      <span class="proc-icon">${icon}</span>
+      <div class="proc-meta">
+        <div class="proc-name">${name}</div>
+        <div class="proc-count">${files.length} file</div>
+      </div>
+      <span class="proc-status pending">⏳ Đang index</span>
+    </div>
+    <div class="processing-project-files">${fileRows}</div>`;
+  container.prepend(card);
+
+  setTimeout(() => {
+    const badge = card.querySelector('.proc-status');
+    if (badge) { badge.className = 'proc-status done'; badge.textContent = '✓ Hoàn tất'; }
+  }, 2500);
+}
+
+// ── Panel file drop ──
+function handleDropPanel(e) {
+  e.preventDefault();
+  document.getElementById('dropzone-panel').classList.remove('drag');
+  addPanelFiles(e.dataTransfer.files);
+}
+function addPanelFiles(files) {
+  const list = document.getElementById('panel-file-list');
+  Array.from(files).forEach(f => {
+    panelPendingFiles.push(f);
+    const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB';
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;';
+    row.innerHTML = `<span>${getFileIcon(f.name)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${f.name}</span><span style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">${sz}</span>`;
+    list.appendChild(row);
   });
 }
 
-// ── Send message — gọi API thật ──
+// ── Handle file upload from topbar / input btn ──
+function handleFileUpload(files) {
+  if (!files || files.length === 0) return;
+  addPanelFiles(files);
+  // Switch to upload tab
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel-tab')[2].classList.add('active');
+  document.getElementById('tab-upload').classList.add('active');
+  showNotif(`Đã thêm ${files.length} file — đặt tên tệp và nhấn Tạo tệp`, 'info');
+}
+
+// ── Chat ──
+function addMessage(role, text, engine, time, fileName) {
+  document.getElementById('chat-empty')?.remove();
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const avatar = `<div class="avatar">${role === 'user' ? 'U' : '⚙'}</div>`;
+  const engineTag = engine ? `<span class="meta-tag ${engine}">${engine === 'gemini' ? '✦ Gemini Flash' : engine === 'groq' ? '⚡ Groq' : '◉ Local'}</span>` : '';
+  const timeStr = time || new Date().toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
+  const meta = role === 'bot' ? `<div class="bubble-meta">${engineTag}<span class="meta-time">${timeStr}</span></div>` : '';
+  const fileChip = fileName ? `<div class="bubble-file"><span class="bubble-file-icon">${getFileIcon(fileName)}</span><div><div class="bubble-file-name">${fileName}</div><div class="bubble-file-size">Đã đính kèm</div></div></div>` : '';
+  div.innerHTML = `${avatar}<div class="bubble">${fileChip}<div>${text.replace(/\n/g,'<br>')}</div>${meta}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  msgCount++;
+  document.getElementById('nav-chat-badge').textContent = msgCount;
+}
+
 async function sendMessage() {
   const ta = document.getElementById('chat-input');
   const text = ta.value.trim();
   if (!text && pendingFiles.length === 0) return;
-
-  const fileObj  = pendingFiles.length > 0 ? pendingFiles[0] : null;
+  const fileObj = pendingFiles.length > 0 ? pendingFiles[0] : null;
   const fileName = fileObj ? fileObj.name : null;
-
-  // Hiển thị message user
   addMessage('user', text || '(Đính kèm file)', null, null, fileName);
   ta.value = ''; ta.style.height = '';
   document.getElementById('upload-previews').innerHTML = '';
-
   showTyping();
   document.getElementById('send-btn').disabled = true;
 
   try {
-    // Đọc nội dung file nếu có
     let userContent = text || '';
-    let fileContent = null;
-
     if (fileObj) {
       showNotif(`Đang đọc file ${fileName}...`, 'info');
-      fileContent = await readFileAsText(fileObj);
-
-      if (fileContent.type === 'text' && fileContent.data && !fileContent.data.includes('[')) {
-        // Có nội dung text đọc được → gửi kèm
-        userContent += `\n\n---\n📎 Nội dung file "${fileName}":\n${fileContent.data}`;
-      } else {
-        // File binary (docx/pdf/ảnh) → chỉ báo tên
-        userContent += `\n\n[File đính kèm: ${fileName} — loại ${fileObj.type || 'unknown'}]`;
-      }
+      userContent += `\n\n[File đính kèm: ${fileName}]`;
     }
-
-    // Thêm vào history
     conversationHistory.push({ role: 'user', content: userContent });
-
-    // Gọi API
     const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: conversationHistory,
-        fileName: fileName || null
-      })
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ messages: conversationHistory, fileName: fileName || null })
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
-    }
-
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const reply  = data.reply  || '(Không có phản hồi)';
-    const engine = data.engine || 'groq';
-
-    // Lưu vào history
+    const reply = data.reply || '(Không có phản hồi)';
     conversationHistory.push({ role: 'assistant', content: reply });
-
     removeTyping();
-    addMessage('bot', reply.replace(/\n/g, '<br>'), engine, null, null);
-
+    addMessage('bot', reply.replace(/\n/g,'<br>'), data.engine || 'groq', null, null);
   } catch (err) {
     removeTyping();
-    addMessage('bot',
-      `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>` +
-      `Kiểm tra:<br>` +
-      `• <code>GROQ_API_KEY</code> đã set trên Vercel chưa?<br>` +
-      `• Đã Redeploy sau khi thêm env var chưa?`,
-      'local', null, null);
+    addMessage('bot', `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`, 'local', null, null);
   } finally {
     pendingFiles = [];
     document.getElementById('send-btn').disabled = false;
@@ -869,17 +1004,15 @@ async function sendMessage() {
 
 function showTyping() {
   const msgs = document.getElementById('messages');
+  document.getElementById('chat-empty')?.remove();
   const div = document.createElement('div');
   div.className = 'msg bot'; div.id = 'typing-msg';
   div.innerHTML = `<div class="avatar">⚙</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
 }
 function removeTyping() {
-  const t = document.getElementById('typing-msg');
-  if (t) t.remove();
+  const t = document.getElementById('typing-msg'); if (t) t.remove();
 }
-
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
@@ -887,56 +1020,14 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 140) + 'px';
 }
-function sendSuggestion(btn) {
-  document.getElementById('chat-input').value = btn.textContent.replace(/^[\p{Emoji}]\s*/u,'');
-  sendMessage();
-}
 function clearChat() {
-  document.getElementById('messages').innerHTML = '<div class="welcome" id="welcome"><div class="welcome-icon">⚙</div><h2>Chat đã được xóa</h2><p>Bắt đầu cuộc hội thoại mới!</p></div>';
+  document.getElementById('messages').innerHTML = '<div class="chat-empty" id="chat-empty"><div class="chat-empty-icon">⚙</div><p>Tải tệp lên hoặc bắt đầu đặt câu hỏi kỹ thuật</p></div>';
   conversationHistory = [];
-  showNotif('Đã xóa lịch sử chat','info');
+  msgCount = 0;
+  document.getElementById('nav-chat-badge').textContent = '0';
+  showNotif('Đã xóa lịch sử chat', 'info');
 }
 
-// ── File handling ──
-function handleFileUpload(files) {
-  Array.from(files).forEach(f => {
-    pendingFiles.push(f);
-    const prev = document.getElementById('upload-previews');
-    const chip = document.createElement('div');
-    chip.className = 'preview-chip';
-    chip.innerHTML = `${getFileIcon(f.name)} ${f.name} <span class="preview-chip-remove" onclick="removePreview(this,'${f.name}')">×</span>`;
-    prev.appendChild(chip);
-    addToProcessingList(f.name);
-  });
-  showNotif(`Đã thêm ${files.length} file — nhấn Enter để gửi`, 'success');
-}
-function removePreview(el, name) {
-  el.closest('.preview-chip').remove();
-  pendingFiles = pendingFiles.filter(f => f.name !== name);
-}
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('dropzone').classList.remove('drag');
-  handleFileUpload(e.dataTransfer.files);
-}
-function addToProcessingList(name) {
-  const list = document.getElementById('processing-list');
-  const item = document.createElement('div');
-  item.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px';
-  item.innerHTML = `<span>${getFileIcon(name)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${name}</span><span style="font-family:var(--font-mono);font-size:10px;color:var(--green)">✓ Sẵn sàng</span>`;
-  list.appendChild(item);
-}
-
-// ── Panel / Tab ──
-function openFile(name, type, size) {
-  document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  document.getElementById('panel-filename').textContent = name;
-  document.getElementById('s-type').textContent = type;
-  document.getElementById('s-size').textContent = size;
-  if (type === 'DWG') { document.getElementById('s-layers').textContent = Math.floor(8+Math.random()*12); document.getElementById('s-objects').textContent = (Math.floor(1000+Math.random()*3000)).toLocaleString(); }
-  showNotif(`Đã chọn: ${name}`, 'info');
-}
 function switchTab(el, id) {
   document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -946,23 +1037,18 @@ function switchTab(el, id) {
 function switchNav(el, id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
-  document.querySelector('.topbar-sub').textContent = '/ ' + id;
+  document.getElementById('topbar-sub').textContent = '/ ' + id;
 }
-
-// ── Notifications ──
-function showNotif(msg, type = 'info') {
-  const icons = { success:'✓', info:'ℹ', warning:'⚠' };
+function showNotif(msg, type='info') {
+  const icons = {success:'✓', info:'ℹ', warning:'⚠'};
   const n = document.createElement('div');
   n.className = `notif ${type}`;
   n.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
   document.body.appendChild(n);
   setTimeout(() => n.remove(), 3000);
 }
-
-// Responsive
 function checkResponsive() {
-  const menuBtn = document.getElementById('menu-btn');
-  menuBtn.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+  document.getElementById('menu-btn').style.display = window.innerWidth <= 900 ? 'flex' : 'none';
 }
 window.addEventListener('resize', checkResponsive);
 checkResponsive();
