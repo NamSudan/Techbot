@@ -8,7 +8,7 @@
  *   GEMINI_API_KEY — https://aistudio.google.com/app/apikey  (tùy chọn)
  */
 
-const SYSTEM_PROMPT = `Bạn là TechBot — trợ lý AI chuyên về tài liệu kỹ thuật, bản vẽ CAD (DWG/DXF), sơ đồ P&ID, file Excel vật tư và hồ sơ kỹ thuật.
+const BASE_SYSTEM_PROMPT = `Bạn là TechBot — trợ lý AI chuyên về tài liệu kỹ thuật, bản vẽ CAD (DWG/DXF), sơ đồ P&ID, file Excel vật tư và hồ sơ kỹ thuật.
 
 Hãy:
 - Trả lời bằng tiếng Việt, rõ ràng và chuyên nghiệp
@@ -17,6 +17,16 @@ Hãy:
 - Không bịa đặt số liệu kỹ thuật
 
 Lĩnh vực chuyên môn: xây dựng, cơ khí, điện, kết cấu, vật tư công trình.`;
+
+function getSystemPrompt(roleContext, roleName) {
+  if (!roleContext) return BASE_SYSTEM_PROMPT;
+  return `${BASE_SYSTEM_PROMPT}
+
+VAI TRÒ HIỆN TẠI: ${roleName || 'Kỹ sư'}
+${roleContext}
+
+Hãy điều chỉnh phong cách trả lời phù hợp với vai trò này.`;
+}
 
 export default async function handler(req, res) {
   // CORS headers (cho phép test local)
@@ -29,7 +39,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages = [], fileName = null } = req.body || {};
+  const { messages = [], fileName = null, roleContext = null, roleName = null } = req.body || {};
 
   if (!messages.length) {
     return res.status(400).json({ error: 'messages là bắt buộc' });
@@ -44,9 +54,9 @@ export default async function handler(req, res) {
     let reply, engine;
 
     if (useGemini) {
-      ({ reply, engine } = await callGemini(messages, fileName));
+      ({ reply, engine } = await callGemini(messages, fileName, roleContext, roleName));
     } else {
-      ({ reply, engine } = await callGroq(messages, fileName));
+      ({ reply, engine } = await callGroq(messages, fileName, roleContext, roleName));
     }
 
     return res.status(200).json({ reply, engine });
@@ -58,12 +68,13 @@ export default async function handler(req, res) {
 }
 
 // ── Groq (llama-3.3-70b-versatile) ──
-async function callGroq(messages, fileName) {
+async function callGroq(messages, fileName, roleContext, roleName) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY chưa được cấu hình trên Vercel');
 
+  const systemPrompt = getSystemPrompt(roleContext, roleName);
   const groqMessages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
     ...messages.map(m => ({
       role: m.role,
       content: m.content
@@ -97,10 +108,12 @@ async function callGroq(messages, fileName) {
 }
 
 // ── Gemini Flash (cho vision/PDF) ──
-async function callGemini(messages, fileName) {
+async function callGemini(messages, fileName, roleContext, roleName) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY chưa được cấu hình');
 
+  const systemPrompt = getSystemPrompt(roleContext, roleName);
+  
   // Lấy message cuối của user
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
   const prompt = lastUserMsg?.content || '';
@@ -112,7 +125,7 @@ async function callGemini(messages, fileName) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
-          parts: [{ text: `${SYSTEM_PROMPT}\n\nUser: ${prompt}` }]
+          parts: [{ text: `${systemPrompt}\n\nUser: ${prompt}` }]
         }],
         generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
       })
@@ -121,7 +134,7 @@ async function callGemini(messages, fileName) {
 
   if (!response.ok) {
     // Fallback sang Groq nếu Gemini lỗi
-    return callGroq(messages, fileName);
+    return callGroq(messages, fileName, roleContext, roleName);
   }
 
   const data = await response.json();
