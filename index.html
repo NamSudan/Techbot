@@ -207,6 +207,308 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .topbar-title { font-size: 14px; font-weight: 600; }
 .topbar-sub   { font-size: 11px; color: var(--text3); font-family: var(--font-mono); margin-left: 2px; }
+
+/* ── ROLE TABS ── */
+.role-tabs-wrapper {
+  padding: 0 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.role-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+.role-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  transition: all .2s;
+  font-family: var(--font-main);
+}
+.role-tab:hover {
+  background: var(--bg3);
+  color: var(--text);
+}
+.role-tab.active {
+  background: linear-gradient(135deg, rgba(0,212,255,.12), rgba(0,255,200,.08));
+  border-color: rgba(0,212,255,.3);
+  color: var(--accent);
+}
+.role-tab-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  transition: all .2s;
+}
+.role-tab.active .role-tab-icon {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border-color: transparent;
+}
+.role-tab-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.role-tab-name {
+  font-weight: 600;
+}
+.role-tab-desc {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+.role-tab.active .role-tab-desc {
+  color: var(--accent2);
+}
+
+/* ── DOCUMENT TAGS SYSTEM ── */
+.tags-section {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.tags-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-bottom: 8px;
+}
+.tags-title {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: .1em;
+  font-family: var(--font-mono);
+}
+.tags-add-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all .15s;
+}
+.tags-add-btn:hover {
+  background: var(--bg4);
+  color: var(--accent);
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+}
+.doc-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  transition: all .15s;
+}
+.doc-tag:hover {
+  border-color: var(--border2);
+  background: var(--bg4);
+}
+.doc-tag.active {
+  border-color: rgba(0,212,255,.35);
+  background: rgba(0,212,255,.08);
+  color: var(--accent);
+}
+.doc-tag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.doc-tag-count {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: var(--bg4);
+  color: var(--text3);
+}
+.doc-tag.active .doc-tag-count {
+  background: rgba(0,212,255,.15);
+  color: var(--accent);
+}
+/* Tag colors */
+.tag-drawings .doc-tag-dot { background: var(--amber); }
+.tag-docs .doc-tag-dot { background: var(--purple); }
+.tag-specs .doc-tag-dot { background: var(--green); }
+.tag-images .doc-tag-dot { background: var(--accent); }
+.tag-reports .doc-tag-dot { background: var(--red); }
+.tag-data .doc-tag-dot { background: #4ade80; }
+
+/* ── IMPROVED UPLOAD PANEL ── */
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.upload-preview-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.upload-preview-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+.upload-preview-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--bg4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.upload-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.upload-preview-thumb .file-type-icon {
+  font-size: 32px;
+  opacity: .6;
+}
+.upload-preview-thumb .file-type-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.upload-preview-info {
+  padding: 10px;
+}
+.upload-preview-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upload-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.upload-preview-size {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+.upload-preview-status {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.upload-preview-remove {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  opacity: 0;
+  transition: all .15s;
+}
+.upload-preview-card:hover .upload-preview-remove {
+  opacity: 1;
+}
+.upload-preview-remove:hover {
+  background: var(--red);
+  color: white;
+}
+.upload-progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  border-radius: 2px;
+  transition: width .3s;
+}
+.upload-stats {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+.upload-stat {
+  flex: 1;
+  text-align: center;
+}
+.upload-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.upload-stat-label {
+  font-size: 9px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .topbar-btn {
   padding: 6px 12px; border-radius: 7px; font-size: 12px; cursor: pointer;
@@ -550,6 +852,46 @@ textarea::placeholder { color: var(--text3); }
       </div>
     </nav>
 
+    <!-- ── DOCUMENT TAGS ── -->
+    <div class="tags-section">
+      <div class="tags-header">
+        <span class="tags-title">GẮN THẺ TÀI LIỆU</span>
+        <button class="tags-add-btn" title="Thêm thẻ mới" onclick="showNotif('Tính năng thêm thẻ sẽ sớm ra mắt!','info')">+</button>
+      </div>
+      <div class="tags-list" id="tags-list">
+        <div class="doc-tag tag-drawings active" onclick="toggleTag(this, 'drawings')">
+          <span class="doc-tag-dot"></span>
+          <span>Bản vẽ</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-docs" onclick="toggleTag(this, 'docs')">
+          <span class="doc-tag-dot"></span>
+          <span>Tài liệu</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-specs" onclick="toggleTag(this, 'specs')">
+          <span class="doc-tag-dot"></span>
+          <span>Specs</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-images" onclick="toggleTag(this, 'images')">
+          <span class="doc-tag-dot"></span>
+          <span>Hình ảnh</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-reports" onclick="toggleTag(this, 'reports')">
+          <span class="doc-tag-dot"></span>
+          <span>Báo cáo</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-data" onclick="toggleTag(this, 'data')">
+          <span class="doc-tag-dot"></span>
+          <span>Dữ liệu</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+      </div>
+    </div>
+
     <!-- PROJECT FILE TREE -->
     <div class="section-header">
       <span class="section-label">TỆP ĐÃ INDEX</span>
@@ -570,6 +912,7 @@ textarea::placeholder { color: var(--text3); }
       <button class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;padding:6px" id="menu-btn">☰</button>
       <span class="topbar-title">Trợ lý Kỹ thuật</span>
       <span class="topbar-sub" id="topbar-sub">/ chat</span>
+      <span class="topbar-sub" id="current-role" style="color:var(--accent);margin-left:4px">• Kỹ sư</span>
       <div class="model-tag"><span class="dot on"></span>Groq · Llama 3.1</div>
       <div class="model-tag" style="margin-left:4px"><span class="dot on"></span>Gemini Flash</div>
       <div class="topbar-right">
@@ -581,6 +924,33 @@ textarea::placeholder { color: var(--text3); }
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload tệp
         </button>
+      </div>
+    </div>
+
+    <!-- ── ROLE TABS ── -->
+    <div class="role-tabs-wrapper">
+      <div class="role-tabs">
+        <div class="role-tab" onclick="switchRole(this, 'trainer')">
+          <div class="role-tab-icon">👨‍🏫</div>
+          <div class="role-tab-info">
+            <span class="role-tab-name">Nhân viên đào tạo</span>
+            <span class="role-tab-desc">Hỗ trợ training & hướng dẫn</span>
+          </div>
+        </div>
+        <div class="role-tab active" onclick="switchRole(this, 'engineer')">
+          <div class="role-tab-icon">⚙️</div>
+          <div class="role-tab-info">
+            <span class="role-tab-name">Kỹ sư</span>
+            <span class="role-tab-desc">Phân tích kỹ thuật chuyên sâu</span>
+          </div>
+        </div>
+        <div class="role-tab" onclick="switchRole(this, 'operator')">
+          <div class="role-tab-icon">🔧</div>
+          <div class="role-tab-info">
+            <span class="role-tab-name">Vận hành viên</span>
+            <span class="role-tab-desc">Hướng dẫn vận hành & bảo trì</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -658,14 +1028,14 @@ textarea::placeholder { color: var(--text3); }
           <!-- Tab: Upload -->
           <div class="tab-content" id="tab-upload">
             <div class="upload-project-area">
-              <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:4px">
+              <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:8px">
                 Tạo <strong>tệp dự án</strong> để gom nhóm các file liên quan.
               </div>
 
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">BƯỚC 1 — ĐẶT TÊN TỆP</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">BƯỚC 1 — ĐẶT TÊN TỆP</div>
               <input class="project-name-input" id="new-proj-name" placeholder="VD: Nhà máy xi măng Hà Tiên..." />
 
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin:6px 0 4px">BƯỚC 2 — THÊM FILE</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin:10px 0 6px">BƯỚC 2 — THÊM FILE</div>
               <div class="dropzone" id="dropzone-panel"
                 ondragover="event.preventDefault();this.classList.add('drag')"
                 ondragleave="this.classList.remove('drag')"
@@ -675,13 +1045,31 @@ textarea::placeholder { color: var(--text3); }
                 <p><strong>Kéo thả file vào đây</strong><br>hoặc click để chọn</p>
                 <span>PDF · DWG · DXF · DOCX · XLSX · PNG · JPG</span>
               </div>
-              <div id="panel-file-list" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
 
-              <button class="create-project-btn" onclick="createProjectFromPanel()">
+              <!-- Upload Stats -->
+              <div class="upload-stats" id="upload-stats" style="display:none">
+                <div class="upload-stat">
+                  <div class="upload-stat-value" id="stat-files">0</div>
+                  <div class="upload-stat-label">TỆP</div>
+                </div>
+                <div class="upload-stat">
+                  <div class="upload-stat-value" id="stat-size">0 KB</div>
+                  <div class="upload-stat-label">TỔNG DUNG LƯỢNG</div>
+                </div>
+                <div class="upload-stat">
+                  <div class="upload-stat-value" id="stat-types">0</div>
+                  <div class="upload-stat-label">LOẠI FILE</div>
+                </div>
+              </div>
+
+              <!-- Preview Grid -->
+              <div class="upload-grid" id="upload-preview-grid"></div>
+
+              <button class="create-project-btn" onclick="createProjectFromPanel()" style="margin-top:12px">
                 ＋ Tạo tệp & index
               </button>
 
-              <div id="processing-projects" class="processing-projects"></div>
+              <div id="processing-projects" class="processing-projects" style="margin-top:10px"></div>
             </div>
           </div>
         </div>
@@ -712,6 +1100,63 @@ let projectCount = 0;
 let panelPendingFiles = [];
 let totalFileCount = 0;
 let msgCount = 0;
+let currentRole = 'engineer';
+let activeTags = ['drawings'];
+let tagCounts = { drawings: 0, docs: 0, specs: 0, images: 0, reports: 0, data: 0 };
+
+// ── Role switching ──
+const roleNames = {
+  trainer: 'Nhân viên đào tạo',
+  engineer: 'Kỹ sư',
+  operator: 'Vận hành viên'
+};
+const rolePrompts = {
+  trainer: 'Bạn là trợ lý đào tạo kỹ thuật, giải thích đơn giản và chi tiết cho nhân viên mới.',
+  engineer: 'Bạn là trợ lý kỹ sư, phân tích kỹ thuật chuyên sâu với số liệu và công thức.',
+  operator: 'Bạn là trợ lý vận hành, hướng dẫn quy trình vận hành và bảo trì thiết bị.'
+};
+
+function switchRole(el, role) {
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentRole = role;
+  document.getElementById('current-role').textContent = '• ' + roleNames[role];
+  showNotif(`Đã chuyển sang: ${roleNames[role]}`, 'success');
+}
+
+// ── Document tags ──
+function toggleTag(el, tag) {
+  el.classList.toggle('active');
+  const idx = activeTags.indexOf(tag);
+  if (idx > -1) {
+    activeTags.splice(idx, 1);
+  } else {
+    activeTags.push(tag);
+  }
+  filterProjectsByTags();
+}
+
+function filterProjectsByTags() {
+  // For now, just show notification. In full impl, filter the file list
+  showNotif(`Bộ lọc: ${activeTags.length > 0 ? activeTags.join(', ') : 'Tất cả'}`, 'info');
+}
+
+function getFileTag(name) {
+  if (/\.(dwg|dxf)$/i.test(name)) return 'drawings';
+  if (/\.(pdf|docx|doc)$/i.test(name)) return 'docs';
+  if (/\.(xlsx|xls|csv)$/i.test(name)) return 'data';
+  if (/\.(png|jpg|jpeg|gif)$/i.test(name)) return 'images';
+  if (/spec|thông số/i.test(name)) return 'specs';
+  if (/report|báo cáo/i.test(name)) return 'reports';
+  return 'docs';
+}
+
+function updateTagCounts() {
+  Object.keys(tagCounts).forEach(tag => {
+    const el = document.querySelector(`.tag-${tag} .doc-tag-count`);
+    if (el) el.textContent = tagCounts[tag];
+  });
+}
 
 function triggerFileInput() {
   document.getElementById('file-input').value = '';
@@ -839,7 +1284,8 @@ function createProjectFromPanel() {
   addProjectToSidebar(name, panelPendingFiles, icon);
   addProcessingProject(name, icon, panelPendingFiles);
   document.getElementById('new-proj-name').value = '';
-  document.getElementById('panel-file-list').innerHTML = '';
+  document.getElementById('upload-preview-grid').innerHTML = '';
+  document.getElementById('upload-stats').style.display = 'none';
   panelPendingFiles = [];
   showNotif(`✓ Tệp "${name}" đang được index`, 'success');
 }
@@ -923,15 +1369,102 @@ function handleDropPanel(e) {
   addPanelFiles(e.dataTransfer.files);
 }
 function addPanelFiles(files) {
-  const list = document.getElementById('panel-file-list');
-  Array.from(files).forEach(f => {
+  const grid = document.getElementById('upload-preview-grid');
+  const statsEl = document.getElementById('upload-stats');
+  
+  Array.from(files).forEach((f, idx) => {
     panelPendingFiles.push(f);
     const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB';
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;';
-    row.innerHTML = `<span>${getFileIcon(f.name)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${f.name}</span><span style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">${sz}</span>`;
-    list.appendChild(row);
+    const ext = getExt(f.name);
+    const icon = getFileIcon(f.name);
+    const fileIdx = panelPendingFiles.length - 1;
+    
+    // Update tag counts
+    const tag = getFileTag(f.name);
+    tagCounts[tag]++;
+    updateTagCounts();
+    
+    // Determine badge color
+    let badgeStyle = 'background:var(--bg3);color:var(--text2);';
+    if (/dwg|dxf/i.test(ext)) badgeStyle = 'background:rgba(255,170,0,.2);color:var(--amber);';
+    else if (/pdf/i.test(ext)) badgeStyle = 'background:rgba(255,77,109,.2);color:var(--red);';
+    else if (/xlsx|xls/i.test(ext)) badgeStyle = 'background:rgba(0,214,143,.2);color:var(--green);';
+    else if (/docx|doc/i.test(ext)) badgeStyle = 'background:rgba(167,139,250,.2);color:var(--purple);';
+    else if (/png|jpg|jpeg/i.test(ext)) badgeStyle = 'background:rgba(0,212,255,.2);color:var(--accent);';
+    
+    const card = document.createElement('div');
+    card.className = 'upload-preview-card';
+    card.id = `preview-card-${fileIdx}`;
+    
+    // Check if it's an image for preview
+    const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name);
+    let thumbContent = `<span class="file-type-icon">${icon}</span>`;
+    
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const thumbEl = card.querySelector('.upload-preview-thumb');
+        thumbEl.innerHTML = `<img src="${e.target.result}" alt="${f.name}"/><span class="file-type-badge" style="${badgeStyle}">${ext}</span>`;
+      };
+      reader.readAsDataURL(f);
+      thumbContent = `<span class="file-type-icon">⏳</span>`;
+    }
+    
+    card.innerHTML = `
+      <button class="upload-preview-remove" onclick="removePreviewFile(${fileIdx}, event)">✕</button>
+      <div class="upload-preview-thumb">
+        ${thumbContent}
+        <span class="file-type-badge" style="${badgeStyle}">${ext}</span>
+      </div>
+      <div class="upload-preview-info">
+        <div class="upload-preview-name" title="${f.name}">${f.name}</div>
+        <div class="upload-preview-meta">
+          <span class="upload-preview-size">${sz}</span>
+          <span class="upload-preview-status">✓ Sẵn sàng</span>
+        </div>
+        <div class="upload-progress-bar">
+          <div class="upload-progress-fill" style="width:100%"></div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
   });
+  
+  // Update stats
+  updateUploadStats();
+  statsEl.style.display = panelPendingFiles.length > 0 ? 'flex' : 'none';
+}
+
+function removePreviewFile(idx, event) {
+  event.stopPropagation();
+  const tag = getFileTag(panelPendingFiles[idx].name);
+  tagCounts[tag] = Math.max(0, tagCounts[tag] - 1);
+  updateTagCounts();
+  
+  panelPendingFiles.splice(idx, 1);
+  rebuildPreviewGrid();
+}
+
+function rebuildPreviewGrid() {
+  const grid = document.getElementById('upload-preview-grid');
+  grid.innerHTML = '';
+  const files = [...panelPendingFiles];
+  panelPendingFiles = [];
+  addPanelFiles(files);
+  if (files.length === 0) {
+    document.getElementById('upload-stats').style.display = 'none';
+  }
+}
+
+function updateUploadStats() {
+  const totalSize = panelPendingFiles.reduce((s, f) => s + f.size, 0);
+  const types = new Set(panelPendingFiles.map(f => getExt(f.name)));
+  
+  document.getElementById('stat-files').textContent = panelPendingFiles.length;
+  document.getElementById('stat-size').textContent = totalSize > 1048576 
+    ? (totalSize/1048576).toFixed(1) + ' MB' 
+    : Math.round(totalSize/1024) + ' KB';
+  document.getElementById('stat-types').textContent = types.size;
 }
 
 // ── Handle file upload from topbar / input btn ──
@@ -985,7 +1518,12 @@ async function sendMessage() {
     conversationHistory.push({ role: 'user', content: userContent });
     const res = await fetch('/api/chat', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ messages: conversationHistory, fileName: fileName || null })
+      body: JSON.stringify({ 
+        messages: conversationHistory, 
+        fileName: fileName || null,
+        roleContext: rolePrompts[currentRole],
+        roleName: roleNames[currentRole]
+      })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
