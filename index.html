@@ -2535,22 +2535,11 @@ async function sendMessage() {
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
     conversationHistory.push({ role: 'assistant', content: reply });
-    let cites = Array.isArray(data.citations) ? data.citations : [];
-    if (!cites.length && /\[\d+\]/.test(reply)) {
-      if (window.taggedFile) cites = [{ file: window.taggedFile, page: '1' }];
-      else if (fileName) cites = [{ file: fileName, page: '1' }];
-    }
-    await hideThinkingIndicator();
-    addMessageWithActions(reply, cites, data.engine || 'groq', null, { isHtml: false });
+    removeTyping();
+    addMessage('bot', reply.replace(/\n/g,'<br>'), data.engine || 'groq', null, null);
   } catch (err) {
-    await hideThinkingIndicator();
-    addMessageWithActions(
-      `⚠️ <strong>Lỗi:</strong> ${escapeHtml(err.message)}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`,
-      [],
-      'local',
-      null,
-      { isHtml: true }
-    );
+    removeTyping();
+    addMessage('bot', `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`, 'local', null, null);
   } finally {
     pendingFiles = [];
     document.getElementById('send-btn').disabled = false;
