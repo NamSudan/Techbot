@@ -1018,6 +1018,95 @@ textarea::placeholder { color: var(--text3); }
   .sidebar { position: absolute; z-index: 100; transform: translateX(-100%); }
   .sidebar.open { transform: none; }
 }
+
+/* ── AI Thinking indicator (Gợi ý 2) ── */
+.thinking-indicator-wrap {
+  opacity: 1;
+  transition: opacity 0.28s ease;
+}
+.thinking-indicator-wrap.thinking-hide {
+  opacity: 0;
+}
+.thinking-indicator {
+  flex: 1;
+  max-width: 68%;
+  border-left: 3px solid #00d4ff;
+  background: #1a1d27;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.thinking-row {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.thinking-row.thinking-row-visible {
+  display: flex;
+}
+.thinking-row.thinking-row-enter {
+  animation: thinkingStepIn 0.4s ease forwards;
+}
+@keyframes thinkingStepIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.thinking-label {
+  flex: 1;
+  min-width: 0;
+}
+.thinking-row.thinking-row-done .thinking-label {
+  color: var(--text2);
+  opacity: 0.65;
+}
+.thinking-marker {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.thinking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00d4ff;
+  animation: thinkingDotBlink 1s ease-in-out infinite;
+  display: none;
+}
+.thinking-row.thinking-row-active .thinking-dot {
+  display: block;
+}
+.thinking-check {
+  display: none;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+.thinking-row.thinking-row-done .thinking-check {
+  display: block;
+}
+.thinking-row.thinking-row-done .thinking-dot {
+  display: none;
+}
+@keyframes thinkingDotBlink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(0, 212, 255, 0.7); }
+  50% { opacity: 0.35; box-shadow: none; }
+}
 </style>
 </head>
 <body>
@@ -1344,6 +1433,92 @@ let msgCount = 0;
 let currentRole = 'engineer';
 let activeTags = ['drawings'];
 let tagCounts = { drawings: 0, docs: 0, specs: 0, images: 0, reports: 0, data: 0 };
+
+let thinkingIndicatorTimeouts = [];
+
+function showThinkingIndicator() {
+  thinkingIndicatorTimeouts.forEach(clearTimeout);
+  thinkingIndicatorTimeouts = [];
+  document.getElementById('thinking-indicator-msg')?.remove();
+
+  const msgs = document.getElementById('messages');
+  document.getElementById('chat-empty')?.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot thinking-indicator-wrap';
+  wrap.id = 'thinking-indicator-msg';
+  wrap.innerHTML = `
+    <div class="avatar">⚙</div>
+    <div class="thinking-indicator">
+      <div class="thinking-row" data-thinking-step="0">
+        <span class="thinking-label">Đang phân tích câu hỏi...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+      <div class="thinking-row" data-thinking-step="1">
+        <span class="thinking-label">Tìm kiếm tài liệu liên quan...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+      <div class="thinking-row" data-thinking-step="2">
+        <span class="thinking-label">Đọc nội dung phù hợp...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+      <div class="thinking-row" data-thinking-step="3">
+        <span class="thinking-label">Đang tổng hợp câu trả lời...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+    </div>`;
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const rows = wrap.querySelectorAll('.thinking-row');
+  const delays = [0, 600, 1400, 2000];
+
+  function setStepActive(index) {
+    rows.forEach((row, i) => {
+      row.classList.remove('thinking-row-active', 'thinking-row-done', 'thinking-row-visible', 'thinking-row-enter');
+      if (i < index) {
+        row.classList.add('thinking-row-visible', 'thinking-row-done');
+      } else if (i === index) {
+        row.classList.add('thinking-row-visible', 'thinking-row-active', 'thinking-row-enter');
+      }
+    });
+  }
+
+  delays.forEach((ms, index) => {
+    thinkingIndicatorTimeouts.push(setTimeout(() => setStepActive(index), ms));
+  });
+}
+
+function hideThinkingIndicator() {
+  thinkingIndicatorTimeouts.forEach(clearTimeout);
+  thinkingIndicatorTimeouts = [];
+  return new Promise((resolve) => {
+    const el = document.getElementById('thinking-indicator-msg');
+    if (!el) {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      el.remove();
+      resolve();
+    };
+    el.classList.add('thinking-hide');
+    const onEnd = (e) => {
+      if (e.propertyName !== 'opacity') return;
+      el.removeEventListener('transitionend', onEnd);
+      clearTimeout(fallback);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    const fallback = setTimeout(() => {
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    }, 400);
+  });
+}
 
 // ── Role switching ──
 const roleNames = {
@@ -1855,7 +2030,7 @@ async function sendMessage() {
   addMessage('user', text || '(Đính kèm file)', null, null, fileName);
   ta.value = ''; ta.style.height = '';
   document.getElementById('upload-previews').innerHTML = '';
-  showTyping();
+  showThinkingIndicator();
   document.getElementById('send-btn').disabled = true;
 
   try {
@@ -1878,10 +2053,10 @@ async function sendMessage() {
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
     conversationHistory.push({ role: 'assistant', content: reply });
-    removeTyping();
+    await hideThinkingIndicator();
     addMessage('bot', reply.replace(/\n/g,'<br>'), data.engine || 'groq', null, null);
   } catch (err) {
-    removeTyping();
+    await hideThinkingIndicator();
     addMessage('bot', `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`, 'local', null, null);
   } finally {
     pendingFiles = [];
