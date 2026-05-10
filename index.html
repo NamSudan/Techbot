@@ -2688,7 +2688,10 @@ async function sendMessage() {
         project: window.currentProject || null
       })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
     conversationHistory.push({ role: 'assistant', content: reply });
@@ -2701,7 +2704,7 @@ async function sendMessage() {
     }
   } catch (err) {
     await hideThinkingIndicator();
-    addMessage('bot', `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`, 'local', null, null);
+    addMessage('bot', `⚠️ Lỗi: ${err.message}`, 'local', null, null);
   } finally {
     pendingFiles = [];
     document.getElementById('send-btn').disabled = false;
