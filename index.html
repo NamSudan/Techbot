@@ -154,6 +154,22 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .project-folder.open .folder-badge { background: rgba(0,212,255,.1); border-color: rgba(0,212,255,.2); color: var(--accent); }
 
+.folder-delete-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 14px; padding: 3px 5px; border-radius: 5px;
+  opacity: 0; transition: opacity .15s, color .15s, background .15s; flex-shrink: 0; line-height: 1;
+}
+.folder-header:hover .folder-delete-btn { opacity: 1; }
+.folder-delete-btn:hover { color: var(--red); background: rgba(255,77,109,.1); }
+.file-delete-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 11px; padding: 2px 5px; border-radius: 4px;
+  opacity: 0; transition: opacity .15s, color .15s; margin-left: auto; flex-shrink: 0;
+}
+.folder-file:hover .file-delete-btn { opacity: 1; }
+.file-delete-btn:hover { color: var(--red); }
+
 .folder-files {
   max-height: 0; overflow: hidden;
   transition: max-height .3s ease;
@@ -2127,46 +2143,155 @@ async function createProjectFromPanel() {
   showNotif(`✓ Tệp "${name}" đang được index`, 'success');
 }
 
-// ── Add project to sidebar ──
+// ── Add project to sidebar (merge if project already exists) ──
 function addProjectToSidebar(name, files, icon) {
+  // Normalize: accept File objects or plain {fileName, size, chunks} metadata
+  const meta = files.map(f => ({
+    fileName: f.fileName || f.name,
+    size:     f.size || 0,
+    chunks:   f.chunks || 0
+  }));
+
+  const safeProject = name.replace(/'/g, "\\'");
+
+  // Build a single file row HTML
+  function makeFileRow(fileName, size) {
+    const ext  = getExt(fileName);
+    const sz   = size > 1048576 ? (size/1048576).toFixed(1)+'M' : size > 1024 ? Math.round(size/1024)+'K' : '';
+    const safe = fileName.replace(/'/g, "\\'");
+    return `<div class="folder-file" data-filename="${fileName.replace(/"/g,'&quot;')}"
+              onclick="openFile(this,'${safe}','${ext}','${sz}','${safeProject}')">
+        <span class="file-ext ext-${ext.toLowerCase()}">${ext}</span>
+        <span class="file-name">${fileName}</span>
+        <span class="file-size">${sz}</span>
+        <button class="file-delete-btn" title="Xóa file"
+          onclick="deleteFile('${safeProject}','${safe}',this);event.stopPropagation()">✕</button>
+      </div>`;
+  }
+
+  // Merge into existing project if name matches
+  const existing = document.querySelector(`.project-folder[data-project="${name.replace(/"/g,'&quot;')}"]`);
+  if (existing && meta.length > 0) {
+    const filesContainer = existing.querySelector('.folder-files');
+    existing.querySelector('.folder-empty')?.remove();
+    meta.forEach(f => {
+      if (existing.querySelector(`.folder-file[data-filename="${f.fileName.replace(/"/g,'&quot;')}"]`)) return;
+      filesContainer.insertAdjacentHTML('beforeend', makeFileRow(f.fileName, f.size));
+    });
+    const newCount = existing.querySelectorAll('.folder-file').length;
+    existing.querySelector('.folder-badge').textContent = newCount;
+    existing.querySelector('.folder-sub').textContent = `${newCount} file`;
+    totalFileCount = document.querySelectorAll('.folder-file').length;
+    document.getElementById('nav-files-badge').textContent = totalFileCount;
+    return existing;
+  }
+
+  // Create new project folder
   document.getElementById('sidebar-empty')?.remove();
   const id = 'proj-' + (projectCount++);
-  const fileCount = files.length;
-  const totalSize = files.reduce((s, f) => s + f.size, 0);
-  const sizeFmt = totalSize > 1048576 ? (totalSize/1048576).toFixed(1) + ' MB'
-                : totalSize > 1024 ? Math.round(totalSize/1024) + ' KB' : totalSize + ' B';
-  const subText = fileCount > 0 ? `${fileCount} file · ${sizeFmt}` : 'Chưa có file';
-
-  const filesHtml = files.length > 0
-    ? files.map(f => {
-        const ext = getExt(f.name);
-        const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+'M' : Math.round(f.size/1024)+'K';
-        return `<div class="folder-file" onclick="openFile(this,'${f.name.replace(/'/g,"\\'")}','${ext}','${sz}','${name.replace(/'/g,"\\'")}')">
-          <span class="file-ext ext-${ext.toLowerCase()}">${ext}</span>
-          <span class="file-name">${f.name}</span>
-          <span class="file-size">${sz}</span>
-        </div>`;
-      }).join('')
+  const filesHtml = meta.length > 0
+    ? meta.map(f => makeFileRow(f.fileName, f.size)).join('')
     : `<div class="folder-empty"><span>📂</span><span>Kéo file vào để thêm</span></div>`;
 
   const div = document.createElement('div');
   div.className = 'project-folder open';
   div.id = id;
+  div.dataset.project = name;
   div.innerHTML = `
     <div class="folder-header" onclick="toggleFolder('${id}')">
       <svg class="folder-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       <div class="folder-icon">${icon}</div>
       <div class="folder-meta">
         <div class="folder-name">${name}</div>
-        <div class="folder-sub">${subText}</div>
+        <div class="folder-sub">${meta.length > 0 ? meta.length + ' file' : 'Chưa có file'}</div>
       </div>
-      <span class="folder-badge">${fileCount}</span>
+      <button class="folder-delete-btn" title="Xóa project"
+        onclick="deleteProject('${safeProject}','${id}');event.stopPropagation()">🗑</button>
+      <span class="folder-badge">${meta.length}</span>
     </div>
     <div class="folder-files">${filesHtml}</div>`;
   document.getElementById('project-list').prepend(div);
 
-  totalFileCount += fileCount;
+  totalFileCount += meta.length;
   document.getElementById('nav-files-badge').textContent = totalFileCount;
+  return div;
+}
+
+// ── Load projects from Supabase on page load ──
+async function loadProjectsFromSupabase() {
+  try {
+    const res = await fetch('/api/projects');
+    if (!res.ok) return;
+    const projects = await res.json();
+    if (!Array.isArray(projects) || projects.length === 0) return;
+
+    // Reset sidebar
+    const list = document.getElementById('project-list');
+    list.innerHTML = '<div class="sidebar-empty" id="sidebar-empty"><div class="sidebar-empty-icon">📂</div><p>Chưa có tệp nào<br>Tải tệp lên để bắt đầu</p></div>';
+    projectCount = 0; totalFileCount = 0;
+
+    for (const proj of projects) {
+      const icon = detectProjectIconFromNames(proj.files.map(f => f.fileName));
+      addProjectToSidebar(proj.name, proj.files, icon);
+    }
+  } catch(e) {
+    console.warn('loadProjectsFromSupabase:', e.message);
+  }
+}
+
+// ── Delete entire project ──
+async function deleteProject(name, id) {
+  if (!confirm(`Xóa tệp dự án "${name}"?\nToàn bộ dữ liệu đã index sẽ bị xóa khỏi Supabase.`)) return;
+  try {
+    const res = await fetch(`/api/delete?project=${encodeURIComponent(name)}`, { method: 'DELETE' });
+    const d = await res.json();
+    if (!d.ok) { showNotif(`Lỗi xóa: ${d.error}`, 'error'); return; }
+    const el = document.getElementById(id);
+    const count = el.querySelectorAll('.folder-file').length;
+    el.remove();
+    totalFileCount = Math.max(0, totalFileCount - count);
+    document.getElementById('nav-files-badge').textContent = totalFileCount;
+    if (!document.querySelector('.project-folder')) {
+      document.getElementById('project-list').innerHTML =
+        '<div class="sidebar-empty" id="sidebar-empty"><div class="sidebar-empty-icon">📂</div><p>Chưa có tệp nào<br>Tải tệp lên để bắt đầu</p></div>';
+    }
+    showNotif(`✓ Đã xóa dự án "${name}"`, 'success');
+  } catch(e) { showNotif(`Lỗi xóa: ${e.message}`, 'error'); }
+}
+
+// ── Delete a single file from a project ──
+async function deleteFile(project, fileName, btn) {
+  if (!confirm(`Xóa file "${fileName}" khỏi "${project}"?`)) return;
+  try {
+    const res = await fetch(
+      `/api/delete?project=${encodeURIComponent(project)}&file=${encodeURIComponent(fileName)}`,
+      { method: 'DELETE' }
+    );
+    const d = await res.json();
+    if (!d.ok) { showNotif(`Lỗi xóa: ${d.error}`, 'error'); return; }
+    const fileEl  = btn.closest('.folder-file');
+    const folder  = btn.closest('.project-folder');
+    fileEl.remove();
+    const remaining = folder.querySelectorAll('.folder-file').length;
+    folder.querySelector('.folder-badge').textContent = remaining;
+    folder.querySelector('.folder-sub').textContent = remaining > 0 ? `${remaining} file` : 'Chưa có file';
+    if (remaining === 0)
+      folder.querySelector('.folder-files').insertAdjacentHTML('beforeend',
+        '<div class="folder-empty"><span>📂</span><span>Kéo file vào để thêm</span></div>');
+    totalFileCount = Math.max(0, totalFileCount - 1);
+    document.getElementById('nav-files-badge').textContent = totalFileCount;
+    showNotif(`✓ Đã xóa "${fileName}"`, 'success');
+  } catch(e) { showNotif(`Lỗi xóa: ${e.message}`, 'error'); }
+}
+
+// ── Detect icon from file name list (for Supabase-loaded projects) ──
+function detectProjectIconFromNames(names) {
+  const s = names.join(' ').toLowerCase();
+  if (/dwg|dxf/.test(s))   return '📐';
+  if (/pdf/.test(s))        return '📄';
+  if (/xlsx|xls/.test(s))  return '📊';
+  if (/docx|doc/.test(s))  return '📝';
+  return '📂';
 }
 
 // ── Processing project card ──
@@ -2646,6 +2771,7 @@ function checkResponsive() {
 }
 window.addEventListener('resize', checkResponsive);
 checkResponsive();
+loadProjectsFromSupabase();
 </script>
 </body>
 </html>
