@@ -2535,10 +2535,10 @@ async function sendMessage() {
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
     conversationHistory.push({ role: 'assistant', content: reply });
-    removeTyping();
+    await hideThinkingIndicator();
     addMessage('bot', reply.replace(/\n/g,'<br>'), data.engine || 'groq', null, null);
   } catch (err) {
-    removeTyping();
+    await hideThinkingIndicator();
     addMessage('bot', `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`, 'local', null, null);
   } finally {
     pendingFiles = [];
