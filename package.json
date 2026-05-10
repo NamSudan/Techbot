@@ -1,0 +1,18 @@
+{
+  "name": "techbot-chatbot",
+  "version": "1.0.0",
+  "description": "TechBot - Trợ lý AI tài liệu kỹ thuật",
+  "scripts": {
+    "dev": "node -e \"console.log('Use: npx ' + String.fromCharCode(118,101,114,99,101,108) + ' ' + String.fromCharCode(100,101,118))\"",
+    "deploy": "vercel --prod"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "mammoth": "^1.8.0",
+    "jszip": "^3.10.1",
+    "xlsx": "^0.18.5"
+  }
+}

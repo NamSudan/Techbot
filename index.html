@@ -1,0 +1,2651 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TechBot — Trợ lý Kỹ thuật</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #0c0e12;
+  --bg2:       #13161c;
+  --bg3:       #1a1e27;
+  --bg4:       #222736;
+  --border:    #2a2f3d;
+  --border2:   #353c50;
+  --accent:    #00d4ff;
+  --accent2:   #0099bb;
+  --accent3:   #00ffc8;
+  --text:      #e2e8f0;
+  --text2:     #8892a4;
+  --text3:     #4a5568;
+  --red:       #ff4d6d;
+  --amber:     #ffaa00;
+  --green:     #00d68f;
+  --purple:    #a78bfa;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-main: 'Syne', sans-serif;
+  --radius:    10px;
+  --sidebar-w: 290px;
+  --topbar-h:  52px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-main); overflow: hidden; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.app { display: flex; height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  transition: transform .3s;
+}
+.sidebar-logo {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.logo-text { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.logo-sub  { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .08em; margin-top: 1px; }
+
+.api-status {
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.api-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+.api-label { color: var(--text2); font-family: var(--font-mono); }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.dot.off { background: var(--text3); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.status-val { display: flex; align-items: center; font-family: var(--font-mono); font-size: 10px; }
+.status-val.active { color: var(--green); }
+.status-val.idle   { color: var(--text3); }
+
+.sidebar-nav { padding: 10px 8px 4px; display: flex; flex-direction: column; gap: 2px; }
+.nav-section  { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); padding: 6px 10px 3px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  font-size: 13px; cursor: pointer; transition: all .15s; color: var(--text2);
+}
+.nav-item:hover    { background: var(--bg3); color: var(--text); }
+.nav-item.active   { background: var(--bg4); color: var(--accent); }
+.nav-item svg      { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-size: 10px; font-family: var(--font-mono);
+  background: var(--bg4); padding: 2px 7px; border-radius: 20px; color: var(--text2);
+}
+.nav-item.active .nav-badge { background: rgba(0,212,255,.12); color: var(--accent); }
+
+/* ── PROJECT FILE TREE ── */
+.project-list { flex: 1; overflow-y: auto; padding: 6px 8px 12px; }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px 4px;
+}
+.section-label { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); }
+.section-add-btn {
+  width: 20px; height: 20px; border-radius: 5px; border: none;
+  background: transparent; color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1;
+  transition: all .15s;
+}
+.section-add-btn:hover { background: var(--bg4); color: var(--accent); }
+
+/* Empty state */
+.sidebar-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 32px 20px; text-align: center; color: var(--text3);
+  font-size: 12px; line-height: 1.6;
+}
+.sidebar-empty-icon { font-size: 32px; opacity: .4; }
+
+/* Project folder */
+.project-folder {
+  border-radius: 10px; overflow: hidden; margin-bottom: 6px;
+  border: 1px solid var(--border); background: var(--bg3);
+  transition: border-color .15s;
+}
+.project-folder:hover { border-color: var(--border2); }
+.project-folder.open  { border-color: rgba(0,212,255,.18); }
+
+.folder-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px; cursor: pointer;
+  transition: background .15s; user-select: none;
+}
+.folder-header:hover { background: rgba(255,255,255,.03); }
+
+.folder-chevron {
+  width: 14px; height: 14px; flex-shrink: 0;
+  color: var(--text3); transition: transform .2s;
+}
+.project-folder.open .folder-chevron { transform: rotate(90deg); }
+
+.folder-icon {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  background: rgba(0,212,255,.12);
+}
+
+.folder-meta { flex: 1; min-width: 0; }
+.folder-name { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-sub  { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 1px; }
+
+.folder-badge {
+  font-size: 10px; font-family: var(--font-mono);
+  background: var(--bg4); border: 1px solid var(--border);
+  padding: 2px 7px; border-radius: 20px; color: var(--text3); flex-shrink: 0;
+}
+.project-folder.open .folder-badge { background: rgba(0,212,255,.1); border-color: rgba(0,212,255,.2); color: var(--accent); }
+
+.folder-files {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s ease;
+  border-top: 0px solid transparent;
+}
+.project-folder.open .folder-files {
+  max-height: 500px;
+  border-top: 1px solid var(--border);
+}
+
+.folder-file {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px 7px 20px; cursor: pointer;
+  transition: background .12s; font-size: 12px; color: var(--text2);
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.folder-file:last-child { border-bottom: none; }
+.folder-file:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.folder-file.active { background: rgba(0,212,255,.07); color: var(--accent); }
+
+.file-ext {
+  font-family: var(--font-mono); font-size: 9px; padding: 2px 5px;
+  border-radius: 4px; flex-shrink: 0; font-weight: 500;
+}
+.ext-pdf  { background: rgba(255,77,109,.15);  color: var(--red); }
+.ext-dwg  { background: rgba(255,170,0,.15);   color: var(--amber); }
+.ext-dxf  { background: rgba(255,170,0,.15);   color: var(--amber); }
+.ext-xlsx { background: rgba(0,214,143,.15);   color: var(--green); }
+.ext-xls  { background: rgba(0,214,143,.15);   color: var(--green); }
+.ext-docx { background: rgba(167,139,250,.15); color: var(--purple); }
+.ext-doc  { background: rgba(167,139,250,.15); color: var(--purple); }
+.ext-png  { background: rgba(0,212,255,.15);   color: var(--accent); }
+.ext-jpg  { background: rgba(0,212,255,.15);   color: var(--accent); }
+.ext-jpeg { background: rgba(0,212,255,.15);   color: var(--accent); }
+
+.file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { font-family: var(--font-mono); font-size: 10px; color: var(--text3); flex-shrink: 0; }
+
+.folder-empty {
+  padding: 14px 20px; font-size: 11px; color: var(--text3);
+  font-family: var(--font-mono); display: flex; align-items: center; gap: 8px;
+}
+
+/* ── MAIN ── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  height: var(--topbar-h); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 12px;
+  background: var(--bg2); flex-shrink: 0;
+}
+.topbar-title { font-size: 14px; font-weight: 600; }
+.topbar-sub   { font-size: 11px; color: var(--text3); font-family: var(--font-mono); margin-left: 2px; }
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+  margin-left: 12px;
+}
+.breadcrumb-item {
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all .15s;
+  cursor: pointer;
+}
+.breadcrumb-item:hover {
+  background: var(--bg3);
+  color: var(--text2);
+}
+.breadcrumb-item.active {
+  color: var(--accent);
+  background: rgba(0,212,255,.08);
+}
+.breadcrumb-sep {
+  color: var(--border2);
+  font-size: 10px;
+}
+
+/* ── ROLE TABS ── */
+.role-tabs-wrapper {
+  padding: 0 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.role-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 0 0;
+  position: relative;
+}
+.role-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  transition: all .2s;
+  font-family: var(--font-main);
+  position: relative;
+  border-radius: 10px 10px 0 0;
+}
+.role-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  border-radius: 2px 2px 0 0;
+  transition: width .25s ease;
+}
+.role-tab:hover {
+  background: var(--bg3);
+  color: var(--text);
+}
+.role-tab.active {
+  background: var(--bg3);
+  color: var(--accent);
+}
+.role-tab.active::after {
+  width: 80%;
+}
+.role-tab-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  transition: all .25s;
+}
+.role-tab:hover .role-tab-icon {
+  border-color: var(--border2);
+}
+.role-tab.active .role-tab-icon {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border-color: transparent;
+  box-shadow: 0 0 16px rgba(0,212,255,.4);
+}
+.role-tab-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.role-tab-name {
+  font-weight: 600;
+}
+.role-tab-desc {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+.role-tab.active .role-tab-desc {
+  color: var(--accent2);
+}
+
+/* ── DOCUMENT TAGS SYSTEM ── */
+.tags-section {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.tags-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-bottom: 8px;
+}
+.tags-title {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: .1em;
+  font-family: var(--font-mono);
+}
+.tags-add-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all .15s;
+}
+.tags-add-btn:hover {
+  background: var(--bg4);
+  color: var(--accent);
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+}
+.doc-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  transition: all .15s;
+}
+.doc-tag:hover {
+  border-color: var(--border2);
+  background: var(--bg4);
+}
+.doc-tag.active {
+  border-color: rgba(0,212,255,.35);
+  background: rgba(0,212,255,.08);
+  color: var(--accent);
+}
+.doc-tag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.doc-tag-count {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: var(--bg4);
+  color: var(--text3);
+}
+.doc-tag.active .doc-tag-count {
+  background: rgba(0,212,255,.15);
+  color: var(--accent);
+}
+/* Tag colors */
+.tag-drawings .doc-tag-dot { background: var(--amber); }
+.tag-docs .doc-tag-dot { background: var(--purple); }
+.tag-specs .doc-tag-dot { background: var(--green); }
+.tag-images .doc-tag-dot { background: var(--accent); }
+.tag-reports .doc-tag-dot { background: var(--red); }
+.tag-data .doc-tag-dot { background: #4ade80; }
+
+/* ── IMPROVED UPLOAD PANEL ── */
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.upload-preview-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.upload-preview-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+.upload-preview-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--bg4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.upload-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.upload-preview-thumb .file-type-icon {
+  font-size: 32px;
+  opacity: .6;
+}
+.upload-preview-thumb .file-type-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.upload-preview-info {
+  padding: 10px;
+}
+.upload-preview-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upload-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.upload-preview-size {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+.upload-preview-status {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.upload-preview-remove {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  opacity: 0;
+  transition: all .15s;
+}
+.upload-preview-card:hover .upload-preview-remove {
+  opacity: 1;
+}
+.upload-preview-remove:hover {
+  background: var(--red);
+  color: white;
+}
+.upload-progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  border-radius: 2px;
+  transition: width .3s;
+}
+.upload-stats {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+.upload-stat {
+  flex: 1;
+  text-align: center;
+}
+.upload-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.upload-stat-label {
+  font-size: 9px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.topbar-btn {
+  padding: 6px 12px; border-radius: 7px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--border2); background: transparent; color: var(--text2);
+  font-family: var(--font-main); transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.topbar-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.06); }
+.topbar-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.topbar-btn.primary:hover { background: var(--accent3); border-color: var(--accent3); }
+.model-tag {
+  font-family: var(--font-mono); font-size: 10px; padding: 3px 8px;
+  border-radius: 5px; border: 1px solid var(--border2); color: var(--text3);
+  display: flex; align-items: center; gap: 5px;
+}
+.model-tag .dot { margin: 0; }
+
+.content-area { flex: 1; display: flex; overflow: hidden; }
+.chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.messages {
+  flex: 1; overflow-y: auto; padding: 24px 28px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* Empty chat state */
+.chat-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 20px; text-align: center; padding: 40px; color: var(--text3);
+}
+.chat-empty-icon {
+  width: 56px; height: 56px;
+  background: rgba(0,212,255,.06);
+  border: 1px solid rgba(0,212,255,.12); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; font-size: 24px; opacity: .6;
+}
+.chat-empty p { font-size: 13px; color: var(--text3); max-width: 400px; line-height: 1.6; }
+
+/* ── SUGGESTION CARDS ── */
+.suggestions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 8px;
+}
+.suggestion-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.suggestion-card:hover {
+  border-color: var(--accent);
+  background: var(--bg4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+}
+.suggestion-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(0,212,255,.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.suggestion-card-text {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.suggestion-card:hover .suggestion-card-text {
+  color: var(--accent);
+}
+
+.msg { display: flex; gap: 12px; animation: fadeUp .25s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+.msg.user { flex-direction: row-reverse; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+}
+.msg.user .avatar { background: linear-gradient(135deg,var(--accent),var(--accent3)); color: var(--bg); }
+.msg.bot  .avatar { background: var(--bg4); border: 1px solid var(--border); color: var(--accent); font-size: 16px; }
+.bubble {
+  max-width: 68%; padding: 12px 16px; border-radius: 14px;
+  font-size: 13.5px; line-height: 1.65;
+}
+.msg.user .bubble { background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.2); border-top-right-radius: 4px; }
+.msg.bot  .bubble { background: var(--bg3); border: 1px solid var(--border); border-top-left-radius: 4px; }
+.bubble-meta { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.meta-tag { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; }
+.meta-tag.groq   { background: rgba(0,214,143,.1); color: var(--green); }
+.meta-tag.gemini { background: rgba(0,212,255,.1);  color: var(--accent); }
+.meta-tag.local  { background: rgba(167,139,250,.1);color: var(--purple); }
+.meta-time { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-left: auto; }
+
+.bubble-file {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg4); border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 12px; margin-bottom: 8px; font-size: 12px;
+}
+.bubble-file-icon { font-size: 20px; }
+.bubble-file-name { color: var(--text); font-weight: 500; }
+.bubble-file-size { color: var(--text3); font-size: 11px; font-family: var(--font-mono); }
+
+.typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce .9s infinite; }
+.typing span:nth-child(2) { animation-delay: .15s; }
+.typing span:nth-child(3) { animation-delay: .30s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+/* ── Gợi ý 3 — AI citations, actions, message layout ── */
+.msg-user-row {
+  align-items: flex-end;
+}
+.msg-user-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: calc(100% - 44px);
+  min-width: 0;
+}
+.bubble-user-new {
+  max-width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border-top-right-radius: 4px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  background: #1a1d27;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.msg-timestamp {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 4px;
+  padding-right: 2px;
+}
+.msg-ai {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+.msg-ai-inner {
+  position: relative;
+  width: 100%;
+  padding-left: 36px;
+  padding-bottom: 2px;
+}
+.msg-ai-robot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d4ff;
+  flex-shrink: 0;
+}
+.msg-ai-robot svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.msg-ai-main {
+  width: 100%;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.msg-ai-main code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg4);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.cite-ref {
+  display: inline;
+  vertical-align: super;
+  font-size: 0.72em;
+  font-weight: 600;
+  color: #00d4ff;
+  text-decoration: none;
+  cursor: pointer;
+  margin: 0 1px;
+  font-family: var(--font-mono);
+}
+.cite-ref:hover {
+  text-decoration: underline;
+}
+.msg-ai-footnotes {
+  margin-top: 14px;
+}
+.msg-ai-fn-sep {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+.msg-ai-fn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 12px;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.msg-ai-fn:hover {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--text);
+}
+.msg-ai-fn-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.msg-ai-fn-target {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.msg-ai-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.msg-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.msg-ai:hover .msg-ai-actions {
+  opacity: 1;
+  pointer-events: auto;
+  animation: msgActionsFadeIn 0.22s ease;
+}
+@keyframes msgActionsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.msg-ai-action {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #8892a4;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.msg-ai-action:hover {
+  background: #1a1d27;
+  color: #00d4ff;
+}
+.msg-ai-action .msg-ai-action-ico {
+  font-size: 14px;
+  pointer-events: none;
+}
+.folder-file.panel-file-highlight {
+  outline: 2px solid #00d4ff;
+  outline-offset: -2px;
+  background: rgba(0, 212, 255, 0.1) !important;
+  animation: panelFilePulse 1.2s ease 2;
+}
+@keyframes panelFilePulse {
+  0%, 100% { outline-color: #00d4ff; }
+  50% { outline-color: var(--accent3); }
+}
+.msg-fn-flash {
+  animation: citeFnFlash 0.6s ease;
+}
+@keyframes citeFnFlash {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(0, 212, 255, 0.12); }
+}
+.checklist-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.checklist-modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.checklist-modal h4 {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.checklist-modal ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.checklist-modal li {
+  margin-bottom: 6px;
+}
+.checklist-modal-close {
+  margin-top: 14px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  font-family: var(--font-main);
+}
+.checklist-modal-close:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#print-root {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 210mm;
+  min-height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #print-root,
+  #print-root * {
+    visibility: visible !important;
+  }
+  #print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 24px;
+    background: #fff;
+    color: #111;
+    font-family: var(--font-main);
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  #print-root h1 {
+    font-size: 14pt;
+    margin: 0 0 16px;
+  }
+}
+
+/* ── INPUT ── */
+.input-area { padding: 14px 20px 18px; border-top: 1px solid var(--border); background: var(--bg2); }
+
+/* File context indicator */
+.file-context-indicator {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: rgba(0,212,255,.06);
+  border: 1px solid rgba(0,212,255,.15);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.file-context-indicator.show {
+  display: flex;
+}
+.file-context-indicator .close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+  transition: color .15s;
+}
+.file-context-indicator .close-btn:hover {
+  color: var(--red);
+}
+
+/* File mention chip in input */
+.mention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(0,212,255,.12);
+  border: 1px solid rgba(0,212,255,.25);
+  border-radius: 5px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  margin: 0 2px;
+  vertical-align: middle;
+}
+.upload-previews { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.preview-chip {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 8px; font-size: 11px; color: var(--text2); font-family: var(--font-mono);
+}
+.preview-chip-remove { cursor: pointer; color: var(--text3); font-size: 14px; transition: color .15s; }
+.preview-chip-remove:hover { color: var(--red); }
+.input-box {
+  display: flex; align-items: flex-end; gap: 10px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 10px 12px; transition: border-color .2s;
+}
+.input-box:focus-within { border-color: var(--accent); }
+.input-actions-left { display: flex; gap: 4px; }
+.input-btn {
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: transparent; color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s; font-size: 15px;
+}
+.input-btn:hover { background: var(--bg4); color: var(--accent); }
+textarea {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: var(--font-main); font-size: 13.5px;
+  resize: none; line-height: 1.6; min-height: 22px; max-height: 140px;
+}
+textarea::placeholder { color: var(--text3); }
+.send-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: none;
+  background: var(--accent); color: var(--bg); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0;
+}
+.send-btn:hover   { background: var(--accent3); transform: scale(1.05); }
+.send-btn:active  { transform: scale(.96); }
+.send-btn:disabled{ background: var(--bg4); color: var(--text3); transform: none; cursor: not-allowed; }
+.input-hint {
+  display: flex; gap: 16px; margin-top: 8px; padding: 0 4px;
+  font-size: 11px; color: var(--text3); font-family: var(--font-mono);
+}
+.hint-chip { display: flex; align-items: center; gap: 5px; }
+.hint-key { background: var(--bg4); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  width: 340px; border-left: 1px solid var(--border);
+  background: var(--bg2); display: flex; flex-direction: column; flex-shrink: 0;
+}
+.panel-tabs { display: flex; gap: 1px; padding: 10px 12px 0; border-bottom: 1px solid var(--border); }
+.panel-tab {
+  padding: 8px 14px; font-size: 12px; cursor: pointer; border-radius: 8px 8px 0 0;
+  color: var(--text3); transition: all .15s; border: 1px solid transparent; border-bottom: none;
+}
+.panel-tab:hover { color: var(--text2); }
+.panel-tab.active { color: var(--accent); background: var(--bg3); border-color: var(--border); border-bottom-color: var(--bg3); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.panel-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+.file-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+}
+.file-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.file-card-icon { font-size: 28px; }
+.file-card-name { font-size: 13px; font-weight: 600; }
+.file-card-path { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; word-break: break-all; }
+.file-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-box { background: var(--bg4); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
+.stat-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 4px; }
+.stat-value { font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--accent); }
+
+.drawing-viewer {
+  background: #f5f5f5; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border); min-height: 200px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 14px; position: relative;
+}
+.drawing-placeholder { text-align: center; color: #aaa; padding: 40px; }
+.drawing-placeholder-icon { font-size: 40px; margin-bottom: 10px; }
+.drawing-placeholder p { font-size: 12px; }
+.drawing-viewer-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+.ctrl-btn {
+  flex: 1; padding: 7px; border-radius: 7px; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text2); font-size: 11px; cursor: pointer;
+  transition: all .15s; font-family: var(--font-main); text-align: center;
+}
+.ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.extracted-section { margin-bottom: 14px; }
+.ext-header { font-size: 11px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .06em; margin-bottom: 8px; }
+.ext-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px;
+  font-family: var(--font-mono); margin: 3px; cursor: default; border: 1px solid var(--border);
+}
+.ext-tag.layer { background: rgba(0,212,255,.07); color: var(--accent); border-color: rgba(0,212,255,.2); }
+.ext-tag.dim   { background: rgba(255,170,0,.07); color: var(--amber); border-color: rgba(255,170,0,.2); }
+.ext-tag.text  { background: rgba(167,139,250,.07); color: var(--purple); border-color: rgba(167,139,250,.2); }
+.ext-tag.block { background: rgba(0,214,143,.07); color: var(--green); border-color: rgba(0,214,143,.2); }
+
+.progress-wrap { margin-bottom: 14px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 6px; font-family: var(--font-mono); }
+.progress-bar { height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width .4s; }
+
+/* ── FILE ACTION BUTTONS ── */
+.file-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.file-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: var(--font-main);
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+}
+.file-action-btn:hover {
+  border-color: var(--border2);
+  background: var(--bg4);
+  color: var(--text);
+}
+.file-action-btn.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent;
+  color: var(--bg);
+}
+.file-action-btn.primary:hover {
+  background: linear-gradient(135deg, var(--accent3), var(--accent));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,212,255,.3);
+}
+
+/* ── INDEX STATS ── */
+.index-stats {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.index-stats-header {
+  font-size: 9px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  letter-spacing: .08em;
+  margin-bottom: 8px;
+}
+.index-stats-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text2);
+}
+.index-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.index-stat-value {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Panel — no file selected */
+.panel-no-file {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; gap: 10px; text-align: center; color: var(--text3);
+}
+.panel-no-file-icon { font-size: 32px; opacity: .35; margin-bottom: 4px; }
+.panel-no-file p { font-size: 12px; line-height: 1.6; }
+
+/* ── UPLOAD TAB ── */
+.upload-project-area { display: flex; flex-direction: column; gap: 10px; }
+
+.create-project-card {
+  background: var(--bg3); border: 1px dashed var(--border2); border-radius: 10px;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.create-project-card h4 { font-size: 12px; font-weight: 600; color: var(--text2); }
+
+.project-name-input {
+  background: var(--bg4); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 8px 12px; font-size: 12px; color: var(--text); font-family: var(--font-main);
+  outline: none; transition: border-color .2s; width: 100%;
+}
+.project-name-input:focus { border-color: var(--accent); }
+.project-name-input::placeholder { color: var(--text3); }
+
+.dropzone {
+  border: 2px dashed var(--border2); border-radius: var(--radius);
+  padding: 24px 16px; text-align: center; cursor: pointer; transition: all .2s; color: var(--text3);
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.04); }
+.dropzone-icon { font-size: 28px; margin-bottom: 8px; }
+.dropzone p    { font-size: 12px; line-height: 1.5; }
+.dropzone span { font-size: 10px; font-family: var(--font-mono); color: var(--text3); }
+
+.create-project-btn {
+  padding: 9px; border-radius: 8px; border: none;
+  background: var(--accent); color: var(--bg); cursor: pointer;
+  font-size: 12px; font-weight: 600; font-family: var(--font-main);
+  transition: all .15s; width: 100%;
+}
+.create-project-btn:hover { background: var(--accent3); }
+
+.processing-projects { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.processing-project {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.processing-project-header {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+}
+.proc-icon { font-size: 18px; }
+.proc-meta { flex: 1; }
+.proc-name  { font-size: 12px; font-weight: 600; color: var(--text); }
+.proc-count { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 1px; }
+.proc-status { font-size: 10px; font-family: var(--font-mono); }
+.proc-status.done    { color: var(--green); }
+.proc-status.pending { color: var(--amber); }
+.processing-project-files { border-top: 1px solid var(--border); }
+.proc-file-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; font-size: 11px; color: var(--text2);
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.proc-file-row:last-child { border-bottom: none; }
+.proc-file-status { margin-left: auto; font-size: 10px; font-family: var(--font-mono); color: var(--green); }
+
+/* ── NOTIFICATIONS ── */
+.notif {
+  position: fixed; top: 16px; right: 16px; z-index: 9999;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; min-width: 240px; animation: slideIn .25s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+@keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:none;opacity:1} }
+.notif.success { border-left: 3px solid var(--green); }
+.notif.info    { border-left: 3px solid var(--accent); }
+.notif.warning { border-left: 3px solid var(--amber); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px;
+  padding: 24px; width: 360px; display: flex; flex-direction: column; gap: 14px;
+  transform: scale(.95); transition: transform .2s;
+}
+.modal-overlay.show .modal { transform: scale(1); }
+.modal h3 { font-size: 16px; font-weight: 700; }
+.modal p   { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.modal-input {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: 9px;
+  padding: 10px 14px; font-size: 13px; color: var(--text); font-family: var(--font-main);
+  outline: none; transition: border-color .2s; width: 100%;
+}
+.modal-input:focus { border-color: var(--accent); }
+.modal-actions { display: flex; gap: 8px; }
+.modal-btn {
+  flex: 1; padding: 10px; border-radius: 9px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); cursor: pointer; font-size: 13px;
+  font-family: var(--font-main); transition: all .15s;
+}
+.modal-btn:hover { background: var(--bg3); color: var(--text); }
+.modal-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.modal-btn.primary:hover { background: var(--accent3); }
+
+@media (max-width: 900px) {
+  .right-panel { display: none; }
+  .sidebar { position: absolute; z-index: 100; transform: translateX(-100%); }
+  .sidebar.open { transform: none; }
+}
+
+/* ── AI Thinking indicator (Gợi ý 2) ── */
+.thinking-indicator-wrap {
+  opacity: 1;
+  transition: opacity 0.28s ease;
+}
+.thinking-indicator-wrap.thinking-hide {
+  opacity: 0;
+}
+.thinking-indicator {
+  flex: 1;
+  max-width: 68%;
+  border-left: 3px solid #00d4ff;
+  background: #1a1d27;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.thinking-row {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.thinking-row.thinking-row-visible {
+  display: flex;
+}
+.thinking-row.thinking-row-enter {
+  animation: thinkingStepIn 0.4s ease forwards;
+}
+@keyframes thinkingStepIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.thinking-label {
+  flex: 1;
+  min-width: 0;
+}
+.thinking-row.thinking-row-done .thinking-label {
+  color: var(--text2);
+  opacity: 0.65;
+}
+.thinking-marker {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.thinking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00d4ff;
+  animation: thinkingDotBlink 1s ease-in-out infinite;
+  display: none;
+}
+.thinking-row.thinking-row-active .thinking-dot {
+  display: block;
+}
+.thinking-check {
+  display: none;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+.thinking-row.thinking-row-done .thinking-check {
+  display: block;
+}
+.thinking-row.thinking-row-done .thinking-dot {
+  display: none;
+}
+@keyframes thinkingDotBlink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(0, 212, 255, 0.7); }
+  50% { opacity: 0.35; box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⚙</div>
+      <div>
+        <div class="logo-text">TechBot</div>
+        <div class="logo-sub">TECHNICAL AI ASSISTANT</div>
+      </div>
+    </div>
+
+    <div class="api-status">
+      <div class="api-row">
+        <span class="api-label">GROQ / Llama</span>
+        <span class="status-val active"><span class="dot on"></span>Online · Free</span>
+      </div>
+      <div class="api-row">
+        <span class="api-label">Gemini Flash</span>
+        <span class="status-val active"><span class="dot on"></span>Online · Vision</span>
+      </div>
+      <div class="api-row">
+        <span class="api-label">Local Offline</span>
+        <span class="status-val idle"><span class="dot off"></span>Standby</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">NAVIGATION</div>
+      <div class="nav-item active" onclick="switchNav(this,'chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
+        <span class="nav-badge" id="nav-chat-badge">0</span>
+      </div>
+      <div class="nav-item" onclick="switchNav(this,'files')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Tài liệu
+        <span class="nav-badge" id="nav-files-badge">0</span>
+      </div>
+      <div class="nav-item" onclick="switchNav(this,'settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Cài đặt
+      </div>
+    </nav>
+
+    <!-- ── DOCUMENT TAGS ── -->
+    <div class="tags-section">
+      <div class="tags-header">
+        <span class="tags-title">GẮN THẺ TÀI LIỆU</span>
+        <button class="tags-add-btn" title="Thêm thẻ mới" onclick="showNotif('Tính năng thêm thẻ sẽ sớm ra mắt!','info')">+</button>
+      </div>
+      <div class="tags-list" id="tags-list">
+        <div class="doc-tag tag-drawings active" onclick="toggleTag(this, 'drawings')">
+          <span class="doc-tag-dot"></span>
+          <span>Bản vẽ</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-docs" onclick="toggleTag(this, 'docs')">
+          <span class="doc-tag-dot"></span>
+          <span>Tài liệu</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-specs" onclick="toggleTag(this, 'specs')">
+          <span class="doc-tag-dot"></span>
+          <span>Specs</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-images" onclick="toggleTag(this, 'images')">
+          <span class="doc-tag-dot"></span>
+          <span>Hình ảnh</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-reports" onclick="toggleTag(this, 'reports')">
+          <span class="doc-tag-dot"></span>
+          <span>Báo cáo</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+        <div class="doc-tag tag-data" onclick="toggleTag(this, 'data')">
+          <span class="doc-tag-dot"></span>
+          <span>Dữ liệu</span>
+          <span class="doc-tag-count">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT FILE TREE -->
+    <div class="section-header">
+      <span class="section-label">TỆP ĐÃ INDEX</span>
+      <button class="section-add-btn" title="Thêm tệp mới" onclick="openNewProjectModal()">+</button>
+    </div>
+
+    <div class="project-list" id="project-list">
+      <div class="sidebar-empty" id="sidebar-empty">
+        <div class="sidebar-empty-icon">📂</div>
+        <p>Chưa có tệp nào<br>Tải tệp lên để bắt đầu</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="topbar">
+      <button class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;padding:6px" id="menu-btn">☰</button>
+      <span class="topbar-title">TechBot</span>
+      <div class="breadcrumb" id="breadcrumb">
+        <span class="breadcrumb-item" id="breadcrumb-role">Kỹ sư</span>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-item" id="breadcrumb-project">—</span>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-item active" id="breadcrumb-state">Đang chat</span>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn" onclick="clearChat()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+          Xóa chat
+        </button>
+        <button class="topbar-btn primary" onclick="triggerFileInput()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload tệp
+        </button>
+      </div>
+    </div>
+
+    <!-- ── ROLE TABS ── -->
+    <div class="role-tabs-wrapper">
+      <div class="role-tabs">
+        <div class="role-tab" onclick="switchRole(this, 'trainer')">
+          <div class="role-tab-icon">👨‍🏫</div>
+          <div class="role-tab-info">
+            <span class="role-tab-name">Nhân viên đào tạo</span>
+            <span class="role-tab-desc">Hỗ trợ training & hướng dẫn</span>
+          </div>
+        </div>
+        <div class="role-tab active" onclick="switchRole(this, 'engineer')">
+          <div class="role-tab-icon">⚙️</div>
+          <div class="role-tab-info">
+            <span class="role-tab-name">Kỹ sư</span>
+            <span class="role-tab-desc">Phân tích kỹ thuật chuyên sâu</span>
+          </div>
+        </div>
+        <div class="role-tab" onclick="switchRole(this, 'operator')">
+          <div class="role-tab-icon">🔧</div>
+          <div class="role-tab-info">
+            <span class="role-tab-name">Vận hành viên</span>
+            <span class="role-tab-desc">Hướng dẫn vận hành & bảo trì</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div class="chat-panel">
+        <div class="messages" id="messages">
+          <div class="chat-empty" id="chat-empty">
+            <div class="chat-empty-icon">⚙</div>
+            <p id="chat-empty-text">Chọn một gợi ý bên dưới hoặc nhập câu hỏi của bạn</p>
+            <div class="suggestions-grid" id="suggestions-grid">
+              <div class="suggestion-card" onclick="useSuggestion(this)">
+                <div class="suggestion-card-icon">📋</div>
+                <div class="suggestion-card-text">Tóm tắt quy trình vận hành cho nhân viên mới</div>
+              </div>
+              <div class="suggestion-card" onclick="useSuggestion(this)">
+                <div class="suggestion-card-icon">✅</div>
+                <div class="suggestion-card-text">Tạo bài kiểm tra về quy trình an toàn</div>
+              </div>
+              <div class="suggestion-card" onclick="useSuggestion(this)">
+                <div class="suggestion-card-icon">📐</div>
+                <div class="suggestion-card-text">Giải thích các ký hiệu trong bản vẽ kỹ thuật</div>
+              </div>
+              <div class="suggestion-card" onclick="useSuggestion(this)">
+                <div class="suggestion-card-icon">📝</div>
+                <div class="suggestion-card-text">Hướng dẫn từng bước thực hiện ca vận hành</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <div class="file-context-indicator" id="file-context-indicator">
+            <span>📄</span>
+            <span>Đang hỏi về:</span>
+            <strong id="file-context-name">—</strong>
+            <button class="close-btn" onclick="clearFileContext()">✕</button>
+          </div>
+          <div class="upload-previews" id="upload-previews"></div>
+          <div class="input-box">
+            <div class="input-actions-left">
+              <button class="input-btn" title="Upload file" onclick="triggerFileInput()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </button>
+              <button class="input-btn" title="Chọn tệp đã index" onclick="showNotif('Chọn tệp dự án bên trái!','info')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </button>
+            </div>
+            <textarea id="chat-input" placeholder="Hỏi về tài liệu, bản vẽ kỹ thuật..." rows="1"
+              onkeydown="handleKey(event)" oninput="autoResize(this); handleInputChange(this)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <div class="input-hint">
+            <span class="hint-chip"><span class="hint-key">Enter</span> gửi</span>
+            <span class="hint-chip"><span class="hint-key">Shift+Enter</span> xuống dòng</span>
+            <span class="hint-chip"><span class="hint-key">@file</span> tag file</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT PANEL ── -->
+      <div class="right-panel" id="right-panel">
+        <div class="panel-tabs">
+          <div class="panel-tab active" onclick="switchTab(this,'tab-info')">Thông tin</div>
+          <div class="panel-tab" onclick="switchTab(this,'tab-preview')">Xem trước</div>
+          <div class="panel-tab" onclick="switchTab(this,'tab-upload')">Upload tệp</div>
+        </div>
+
+        <div class="panel-body">
+          <!-- Tab: Info -->
+          <div class="tab-content active" id="tab-info">
+            <div id="tab-info-content">
+              <div class="panel-no-file">
+                <div class="panel-no-file-icon">📋</div>
+                <p>Chọn một file từ danh sách bên trái để xem thông tin chi tiết</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Preview -->
+          <div class="tab-content" id="tab-preview">
+            <div class="drawing-viewer-controls">
+              <button class="ctrl-btn">🔍 Phóng to</button>
+              <button class="ctrl-btn">↕ Vừa màn hình</button>
+              <button class="ctrl-btn">🖨 In</button>
+            </div>
+            <div class="drawing-viewer">
+              <div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:5px;color:var(--accent)">Preview</div>
+              <div class="drawing-placeholder">
+                <div class="drawing-placeholder-icon">📐</div>
+                <p>Chọn bản vẽ để xem trước</p>
+                <p style="font-size:11px;margin-top:6px;color:#999">Hỗ trợ DWG, DXF, PDF, PNG</p>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);text-align:center">Render bằng ezdxf + svg · Click để zoom</div>
+          </div>
+
+          <!-- Tab: Upload -->
+          <div class="tab-content" id="tab-upload">
+            <div class="upload-project-area">
+              <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:8px">
+                Tạo <strong>tệp dự án</strong> để gom nhóm các file liên quan.
+              </div>
+
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">BƯỚC 1 — ĐẶT TÊN TỆP</div>
+              <input class="project-name-input" id="new-proj-name" placeholder="VD: Nhà máy xi măng Hà Tiên..." />
+
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin:10px 0 6px">BƯỚC 2 — THÊM FILE</div>
+              <div class="dropzone" id="dropzone-panel"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleDropPanel(event)"
+                onclick="triggerFileInput()">
+                <div class="dropzone-icon">📂</div>
+                <p><strong>Kéo thả file vào đây</strong><br>hoặc click để chọn</p>
+                <span>PDF · DWG · DXF · DOCX · XLSX · PNG · JPG</span>
+              </div>
+
+              <!-- Upload Stats -->
+              <div class="upload-stats" id="upload-stats" style="display:none">
+                <div class="upload-stat">
+                  <div class="upload-stat-value" id="stat-files">0</div>
+                  <div class="upload-stat-label">TỆP</div>
+                </div>
+                <div class="upload-stat">
+                  <div class="upload-stat-value" id="stat-size">0 KB</div>
+                  <div class="upload-stat-label">TỔNG DUNG LƯỢNG</div>
+                </div>
+                <div class="upload-stat">
+                  <div class="upload-stat-value" id="stat-types">0</div>
+                  <div class="upload-stat-label">LOẠI FILE</div>
+                </div>
+              </div>
+
+              <!-- Preview Grid -->
+              <div class="upload-grid" id="upload-preview-grid"></div>
+
+              <button class="create-project-btn" onclick="createProjectFromPanel()" style="margin-top:12px">
+                ＋ Tạo tệp & index
+              </button>
+
+              <div id="processing-projects" class="processing-projects" style="margin-top:10px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── NEW PROJECT MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h3>➕ Tạo tệp dự án mới</h3>
+    <p>Đặt tên cho tệp dự án để gom nhóm các file liên quan.</p>
+    <input class="modal-input" id="modal-proj-name" placeholder="Tên tệp dự án..." />
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="document.getElementById('modal-overlay').classList.remove('show')">Hủy</button>
+      <button class="modal-btn primary" onclick="createProjectFromModal()">Tạo tệp</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" multiple accept=".pdf,.dwg,.dxf,.docx,.xlsx,.png,.jpg,.jpeg" onchange="handleFileUpload(this.files)" style="display:none"/>
+
+<div id="print-root" aria-hidden="true"></div>
+
+<script>
+let pendingFiles = [];
+let conversationHistory = [];
+let projectCount = 0;
+let panelPendingFiles = [];
+let totalFileCount = 0;
+let msgCount = 0;
+let msgPayloadId = 0;
+const msgPayloads = new Map();
+let currentRole = 'engineer';
+let activeTags = ['drawings'];
+let tagCounts = { drawings: 0, docs: 0, specs: 0, images: 0, reports: 0, data: 0 };
+
+let thinkingIndicatorTimeouts = [];
+
+function showThinkingIndicator() {
+  thinkingIndicatorTimeouts.forEach(clearTimeout);
+  thinkingIndicatorTimeouts = [];
+  document.getElementById('thinking-indicator-msg')?.remove();
+
+  const msgs = document.getElementById('messages');
+  document.getElementById('chat-empty')?.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot thinking-indicator-wrap';
+  wrap.id = 'thinking-indicator-msg';
+  wrap.innerHTML = `
+    <div class="avatar">⚙</div>
+    <div class="thinking-indicator">
+      <div class="thinking-row" data-thinking-step="0">
+        <span class="thinking-label">Đang phân tích câu hỏi...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+      <div class="thinking-row" data-thinking-step="1">
+        <span class="thinking-label">Tìm kiếm tài liệu liên quan...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+      <div class="thinking-row" data-thinking-step="2">
+        <span class="thinking-label">Đọc nội dung phù hợp...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+      <div class="thinking-row" data-thinking-step="3">
+        <span class="thinking-label">Đang tổng hợp câu trả lời...</span>
+        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+      </div>
+    </div>`;
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const rows = wrap.querySelectorAll('.thinking-row');
+  const delays = [0, 600, 1400, 2000];
+
+  function setStepActive(index) {
+    rows.forEach((row, i) => {
+      row.classList.remove('thinking-row-active', 'thinking-row-done', 'thinking-row-visible', 'thinking-row-enter');
+      if (i < index) {
+        row.classList.add('thinking-row-visible', 'thinking-row-done');
+      } else if (i === index) {
+        row.classList.add('thinking-row-visible', 'thinking-row-active', 'thinking-row-enter');
+      }
+    });
+  }
+
+  delays.forEach((ms, index) => {
+    thinkingIndicatorTimeouts.push(setTimeout(() => setStepActive(index), ms));
+  });
+}
+
+function hideThinkingIndicator() {
+  thinkingIndicatorTimeouts.forEach(clearTimeout);
+  thinkingIndicatorTimeouts = [];
+  return new Promise((resolve) => {
+    const el = document.getElementById('thinking-indicator-msg');
+    if (!el) {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      el.remove();
+      resolve();
+    };
+    el.classList.add('thinking-hide');
+    const onEnd = (e) => {
+      if (e.propertyName !== 'opacity') return;
+      el.removeEventListener('transitionend', onEnd);
+      clearTimeout(fallback);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    const fallback = setTimeout(() => {
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    }, 400);
+  });
+}
+
+// ── Role switching ──
+const roleNames = {
+  trainer: 'Nhân viên đào tạo',
+  engineer: 'Kỹ sư',
+  operator: 'Vận hành viên'
+};
+const rolePrompts = {
+  trainer: 'Bạn là trợ lý đào tạo kỹ thuật, giải thích đơn giản và chi tiết cho nhân viên mới.',
+  engineer: 'Bạn là trợ lý kỹ sư, phân tích kỹ thuật chuyên sâu với số liệu và công thức.',
+  operator: 'Bạn là trợ lý vận hành, hướng dẫn quy trình vận hành và bảo trì thiết bị.'
+};
+
+const roleSuggestions = {
+  trainer: [
+    { icon: '📋', text: 'Tóm tắt quy trình vận hành cho nhân viên mới' },
+    { icon: '✅', text: 'Tạo bài kiểm tra về quy trình an toàn' },
+    { icon: '📐', text: 'Giải thích các ký hiệu trong bản vẽ kỹ thuật' },
+    { icon: '📝', text: 'Hướng dẫn từng bước thực hiện ca vận hành' }
+  ],
+  engineer: [
+    { icon: '🔍', text: 'Phân tích thông số kỹ thuật từ tài liệu' },
+    { icon: '📊', text: 'So sánh các phương án thiết kế' },
+    { icon: '⚙️', text: 'Tính toán tải trọng và kết cấu' },
+    { icon: '📐', text: 'Kiểm tra bản vẽ theo tiêu chuẩn' }
+  ],
+  operator: [
+    { icon: '🔧', text: 'Hướng dẫn khởi động thiết bị theo quy trình' },
+    { icon: '⚠️', text: 'Xử lý sự cố và báo động thường gặp' },
+    { icon: '📋', text: 'Checklist bảo trì định kỳ' },
+    { icon: '🛡️', text: 'Quy trình an toàn khi vận hành' }
+  ]
+};
+
+function switchRole(el, role) {
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentRole = role;
+  
+  // Update breadcrumb
+  document.getElementById('breadcrumb-role').textContent = roleNames[role];
+  
+  // Update suggestions
+  updateSuggestions(role);
+  
+  showNotif(`Đã chuyển sang: ${roleNames[role]}`, 'success');
+}
+
+function updateSuggestions(role) {
+  const grid = document.getElementById('suggestions-grid');
+  if (!grid) return;
+  
+  const suggestions = roleSuggestions[role] || roleSuggestions.engineer;
+  grid.innerHTML = suggestions.map(s => `
+    <div class="suggestion-card" onclick="useSuggestion(this)">
+      <div class="suggestion-card-icon">${s.icon}</div>
+      <div class="suggestion-card-text">${s.text}</div>
+    </div>
+  `).join('');
+}
+
+function useSuggestion(el) {
+  const text = el.querySelector('.suggestion-card-text').textContent;
+  document.getElementById('chat-input').value = text;
+  document.getElementById('chat-input').focus();
+  autoResize(document.getElementById('chat-input'));
+}
+
+function askAboutFile(fileName) {
+  // Set file context
+  document.getElementById('file-context-indicator').classList.add('show');
+  document.getElementById('file-context-name').textContent = fileName;
+  window.taggedFile = fileName;
+  
+  // Focus input
+  document.getElementById('chat-input').focus();
+  document.getElementById('chat-input').placeholder = `Hỏi về ${fileName}...`;
+}
+
+function clearFileContext() {
+  document.getElementById('file-context-indicator').classList.remove('show');
+  document.getElementById('chat-input').placeholder = 'Hỏi về tài liệu, bản vẽ kỹ thuật...';
+  window.taggedFile = null;
+}
+
+function showExtractedContent(fileName) {
+  showNotif(`Đang tải nội dung trích xuất từ ${fileName}...`, 'info');
+  // In a real implementation, this would show extracted text in a modal
+}
+
+// ── Document tags ──
+function toggleTag(el, tag) {
+  el.classList.toggle('active');
+  const idx = activeTags.indexOf(tag);
+  if (idx > -1) {
+    activeTags.splice(idx, 1);
+  } else {
+    activeTags.push(tag);
+  }
+  filterProjectsByTags();
+}
+
+function filterProjectsByTags() {
+  // For now, just show notification. In full impl, filter the file list
+  showNotif(`Bộ lọc: ${activeTags.length > 0 ? activeTags.join(', ') : 'Tất cả'}`, 'info');
+}
+
+function getFileTag(name) {
+  if (/\.(dwg|dxf)$/i.test(name)) return 'drawings';
+  if (/\.(pdf|docx|doc)$/i.test(name)) return 'docs';
+  if (/\.(xlsx|xls|csv)$/i.test(name)) return 'data';
+  if (/\.(png|jpg|jpeg|gif)$/i.test(name)) return 'images';
+  if (/spec|thông số/i.test(name)) return 'specs';
+  if (/report|báo cáo/i.test(name)) return 'reports';
+  return 'docs';
+}
+
+function updateTagCounts() {
+  Object.keys(tagCounts).forEach(tag => {
+    const el = document.querySelector(`.tag-${tag} .doc-tag-count`);
+    if (el) el.textContent = tagCounts[tag];
+  });
+}
+
+function triggerFileInput() {
+  document.getElementById('file-input').value = '';
+  document.getElementById('file-input').click();
+}
+
+// ── Detect file type icon & category ──
+function getFileIcon(name) {
+  if (/\.(dwg|dxf)$/i.test(name))  return '📐';
+  if (/\.pdf$/i.test(name))         return '📄';
+  if (/\.(xlsx|xls)$/i.test(name)) return '📊';
+  if (/\.(docx|doc)$/i.test(name)) return '📝';
+  if (/\.(png|jpg|jpeg)$/i.test(name)) return '🖼️';
+  return '📎';
+}
+
+function getExt(name) {
+  const m = name.match(/\.([a-zA-Z]+)$/);
+  return m ? m[1].toUpperCase() : 'FILE';
+}
+
+function detectProjectIcon(files) {
+  // Auto-detect based on file mix
+  const names = files.map(f => f.name.toLowerCase()).join(' ');
+  if (/dwg|dxf/.test(names)) return '📐';
+  if (/pdf/.test(names))     return '📄';
+  if (/xlsx|xls/.test(names)) return '📊';
+  if (/png|jpg/.test(names)) return '🖼️';
+  return '📁';
+}
+
+// ── Toggle folder ──
+function toggleFolder(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ── Open file ──
+function openFile(el, name, type, size, project) {
+  document.querySelectorAll('.folder-file').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+
+  const ext = getExt(name);
+  const icon = getFileIcon(name);
+
+  let statsHtml = '';
+  if (ext === 'DWG' || ext === 'DXF') {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">LAYERS</div><div class="stat-value">${Math.floor(8+Math.random()*12)}</div></div>
+      <div class="stat-box"><div class="stat-label">ĐỐI TƯỢNG</div><div class="stat-value">${Math.floor(500+Math.random()*3000).toLocaleString()}</div></div>`;
+  } else if (ext === 'PDF') {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">TRANG</div><div class="stat-value">${Math.floor(4+Math.random()*40)}</div></div>
+      <div class="stat-box"><div class="stat-label">TRẠNG THÁI</div><div class="stat-value" style="color:var(--green)">OK</div></div>`;
+  } else if (ext === 'XLSX' || ext === 'XLS') {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">SHEET</div><div class="stat-value">${Math.floor(1+Math.random()*6)}</div></div>
+      <div class="stat-box"><div class="stat-label">DÒNG DỮ LIỆU</div><div class="stat-value">${Math.floor(20+Math.random()*500)}</div></div>`;
+  } else {
+    statsHtml = `
+      <div class="stat-box"><div class="stat-label">LOẠI FILE</div><div class="stat-value">${ext}</div></div>
+      <div class="stat-box"><div class="stat-label">KÍCH THƯỚC</div><div class="stat-value">${size}</div></div>
+      <div class="stat-box"><div class="stat-label">TRẠNG THÁI</div><div class="stat-value" style="color:var(--green)">OK</div></div>
+      <div class="stat-box"><div class="stat-label">DỰ ÁN</div><div class="stat-value" style="font-size:10px;color:var(--text2)">${project.substring(0,8)}</div></div>`;
+  }
+
+  // Generate random index stats
+  const chunks = Math.floor(20 + Math.random() * 60);
+  const tables = Math.floor(Math.random() * 8);
+  const images = Math.floor(Math.random() * 5);
+  
+  // Store current file context
+  window.currentFileContext = { name, project, ext };
+  
+  // Update breadcrumb
+  document.getElementById('breadcrumb-project').textContent = project.length > 15 ? project.substring(0,15) + '...' : project;
+
+  document.getElementById('tab-info-content').innerHTML = `
+    <div class="file-card">
+      <div class="file-card-header">
+        <span class="file-card-icon">${icon}</span>
+        <div>
+          <div class="file-card-name">${name}</div>
+          <div class="file-card-path">${project} / ${ext.toLowerCase()}</div>
+        </div>
+      </div>
+      <div class="file-stats">${statsHtml}</div>
+    </div>
+    
+    <div class="file-actions">
+      <button class="file-action-btn primary" onclick="askAboutFile('${name.replace(/'/g,"\\'")}')">
+        💬 Hỏi về tài liệu này
+      </button>
+      <button class="file-action-btn" onclick="showExtractedContent('${name.replace(/'/g,"\\'")}')">
+        👁 Xem nội dung đã trích xuất
+      </button>
+    </div>
+    
+    <div class="index-stats">
+      <div class="index-stats-header">ĐÃ INDEX</div>
+      <div class="index-stats-content">
+        <div class="index-stat-item">
+          <span class="index-stat-value">${chunks}</span>
+          <span>đoạn văn bản</span>
+        </div>
+        <div class="index-stat-item">
+          <span class="index-stat-value">${tables}</span>
+          <span>bảng</span>
+        </div>
+        <div class="index-stat-item">
+          <span class="index-stat-value">${images}</span>
+          <span>hình</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Đã trích xuất</span><span style="color:var(--accent)">100%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Đã index vector</span><span style="color:var(--green)">84%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:84%;background:linear-gradient(90deg,var(--green),var(--accent3))"></div></div>
+    </div>`;
+
+  // Switch to info tab
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector('.panel-tab').classList.add('active');
+  document.getElementById('tab-info').classList.add('active');
+
+  showNotif(`📂 ${project} → ${name}`, 'info');
+}
+
+// ── Modal ──
+function openNewProjectModal() {
+  document.getElementById('modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('modal-proj-name').focus(), 200);
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+function createProjectFromModal() {
+  const name = document.getElementById('modal-proj-name').value.trim();
+  if (!name) { showNotif('Vui lòng đặt tên tệp!', 'warning'); return; }
+  addProjectToSidebar(name, [], '📁');
+  document.getElementById('modal-overlay').classList.remove('show');
+  document.getElementById('modal-proj-name').value = '';
+  showNotif(`✓ Đã tạo tệp "${name}"`, 'success');
+}
+
+// ── Create project from panel ──
+async function createProjectFromPanel() {
+  const name = document.getElementById('new-proj-name').value.trim();
+  if (!name) { showNotif('Vui lòng đặt tên tệp!', 'warning'); return; }
+  if (panelPendingFiles.length === 0) { showNotif('Vui lòng thêm ít nhất một file!', 'warning'); return; }
+  window.currentProject = name;
+  showNotif('Đang index tài liệu lên Supabase...', 'info');
+  for (const file of panelPendingFiles) {
+    try {
+      const b64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileBase64: b64,
+          mimeType: file.type,
+          project: name,
+          role: currentRole
+        })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        showNotif(`Lỗi index "${file.name}": ${result.error || res.status}`, 'error');
+        console.error('Ingest error:', file.name, result);
+      }
+    } catch(e) {
+      showNotif(`Lỗi index "${file.name}": ${e.message}`, 'error');
+      console.error('Ingest error:', file.name, e);
+    }
+  }
+  const icon = detectProjectIcon(panelPendingFiles);
+  addProjectToSidebar(name, panelPendingFiles, icon);
+  addProcessingProject(name, icon, panelPendingFiles);
+  document.getElementById('new-proj-name').value = '';
+  document.getElementById('upload-preview-grid').innerHTML = '';
+  document.getElementById('upload-stats').style.display = 'none';
+  panelPendingFiles = [];
+  showNotif(`✓ Tệp "${name}" đang được index`, 'success');
+}
+
+// ── Add project to sidebar ──
+function addProjectToSidebar(name, files, icon) {
+  document.getElementById('sidebar-empty')?.remove();
+  const id = 'proj-' + (projectCount++);
+  const fileCount = files.length;
+  const totalSize = files.reduce((s, f) => s + f.size, 0);
+  const sizeFmt = totalSize > 1048576 ? (totalSize/1048576).toFixed(1) + ' MB'
+                : totalSize > 1024 ? Math.round(totalSize/1024) + ' KB' : totalSize + ' B';
+  const subText = fileCount > 0 ? `${fileCount} file · ${sizeFmt}` : 'Chưa có file';
+
+  const filesHtml = files.length > 0
+    ? files.map(f => {
+        const ext = getExt(f.name);
+        const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+'M' : Math.round(f.size/1024)+'K';
+        return `<div class="folder-file" onclick="openFile(this,'${f.name.replace(/'/g,"\\'")}','${ext}','${sz}','${name.replace(/'/g,"\\'")}')">
+          <span class="file-ext ext-${ext.toLowerCase()}">${ext}</span>
+          <span class="file-name">${f.name}</span>
+          <span class="file-size">${sz}</span>
+        </div>`;
+      }).join('')
+    : `<div class="folder-empty"><span>📂</span><span>Kéo file vào để thêm</span></div>`;
+
+  const div = document.createElement('div');
+  div.className = 'project-folder open';
+  div.id = id;
+  div.innerHTML = `
+    <div class="folder-header" onclick="toggleFolder('${id}')">
+      <svg class="folder-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      <div class="folder-icon">${icon}</div>
+      <div class="folder-meta">
+        <div class="folder-name">${name}</div>
+        <div class="folder-sub">${subText}</div>
+      </div>
+      <span class="folder-badge">${fileCount}</span>
+    </div>
+    <div class="folder-files">${filesHtml}</div>`;
+  document.getElementById('project-list').prepend(div);
+
+  totalFileCount += fileCount;
+  document.getElementById('nav-files-badge').textContent = totalFileCount;
+}
+
+// ── Processing project card ──
+function addProcessingProject(name, icon, files) {
+  const container = document.getElementById('processing-projects');
+  const fileRows = files.map(f => `
+    <div class="proc-file-row">
+      <span>${getFileIcon(f.name)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <span class="proc-file-status">✓ Sẵn sàng</span>
+    </div>`).join('');
+
+  const card = document.createElement('div');
+  card.className = 'processing-project';
+  card.innerHTML = `
+    <div class="processing-project-header">
+      <span class="proc-icon">${icon}</span>
+      <div class="proc-meta">
+        <div class="proc-name">${name}</div>
+        <div class="proc-count">${files.length} file</div>
+      </div>
+      <span class="proc-status pending">⏳ Đang index</span>
+    </div>
+    <div class="processing-project-files">${fileRows}</div>`;
+  container.prepend(card);
+
+  setTimeout(() => {
+    const badge = card.querySelector('.proc-status');
+    if (badge) { badge.className = 'proc-status done'; badge.textContent = '✓ Hoàn tất'; }
+  }, 2500);
+}
+
+// ── Panel file drop ──
+function handleDropPanel(e) {
+  e.preventDefault();
+  document.getElementById('dropzone-panel').classList.remove('drag');
+  addPanelFiles(e.dataTransfer.files);
+}
+function addPanelFiles(files) {
+  const grid = document.getElementById('upload-preview-grid');
+  const statsEl = document.getElementById('upload-stats');
+  
+  Array.from(files).forEach((f, idx) => {
+    panelPendingFiles.push(f);
+    const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB';
+    const ext = getExt(f.name);
+    const icon = getFileIcon(f.name);
+    const fileIdx = panelPendingFiles.length - 1;
+    
+    // Update tag counts
+    const tag = getFileTag(f.name);
+    tagCounts[tag]++;
+    updateTagCounts();
+    
+    // Determine badge color
+    let badgeStyle = 'background:var(--bg3);color:var(--text2);';
+    if (/dwg|dxf/i.test(ext)) badgeStyle = 'background:rgba(255,170,0,.2);color:var(--amber);';
+    else if (/pdf/i.test(ext)) badgeStyle = 'background:rgba(255,77,109,.2);color:var(--red);';
+    else if (/xlsx|xls/i.test(ext)) badgeStyle = 'background:rgba(0,214,143,.2);color:var(--green);';
+    else if (/docx|doc/i.test(ext)) badgeStyle = 'background:rgba(167,139,250,.2);color:var(--purple);';
+    else if (/png|jpg|jpeg/i.test(ext)) badgeStyle = 'background:rgba(0,212,255,.2);color:var(--accent);';
+    
+    const card = document.createElement('div');
+    card.className = 'upload-preview-card';
+    card.id = `preview-card-${fileIdx}`;
+    
+    // Check if it's an image for preview
+    const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name);
+    let thumbContent = `<span class="file-type-icon">${icon}</span>`;
+    
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const thumbEl = card.querySelector('.upload-preview-thumb');
+        thumbEl.innerHTML = `<img src="${e.target.result}" alt="${f.name}"/><span class="file-type-badge" style="${badgeStyle}">${ext}</span>`;
+      };
+      reader.readAsDataURL(f);
+      thumbContent = `<span class="file-type-icon">⏳</span>`;
+    }
+    
+    card.innerHTML = `
+      <button class="upload-preview-remove" onclick="removePreviewFile(${fileIdx}, event)">✕</button>
+      <div class="upload-preview-thumb">
+        ${thumbContent}
+        <span class="file-type-badge" style="${badgeStyle}">${ext}</span>
+      </div>
+      <div class="upload-preview-info">
+        <div class="upload-preview-name" title="${f.name}">${f.name}</div>
+        <div class="upload-preview-meta">
+          <span class="upload-preview-size">${sz}</span>
+          <span class="upload-preview-status">✓ Sẵn sàng</span>
+        </div>
+        <div class="upload-progress-bar">
+          <div class="upload-progress-fill" style="width:100%"></div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  // Update stats
+  updateUploadStats();
+  statsEl.style.display = panelPendingFiles.length > 0 ? 'flex' : 'none';
+}
+
+function removePreviewFile(idx, event) {
+  event.stopPropagation();
+  const tag = getFileTag(panelPendingFiles[idx].name);
+  tagCounts[tag] = Math.max(0, tagCounts[tag] - 1);
+  updateTagCounts();
+  
+  panelPendingFiles.splice(idx, 1);
+  rebuildPreviewGrid();
+}
+
+function rebuildPreviewGrid() {
+  const grid = document.getElementById('upload-preview-grid');
+  grid.innerHTML = '';
+  const files = [...panelPendingFiles];
+  panelPendingFiles = [];
+  addPanelFiles(files);
+  if (files.length === 0) {
+    document.getElementById('upload-stats').style.display = 'none';
+  }
+}
+
+function updateUploadStats() {
+  const totalSize = panelPendingFiles.reduce((s, f) => s + f.size, 0);
+  const types = new Set(panelPendingFiles.map(f => getExt(f.name)));
+  
+  document.getElementById('stat-files').textContent = panelPendingFiles.length;
+  document.getElementById('stat-size').textContent = totalSize > 1048576 
+    ? (totalSize/1048576).toFixed(1) + ' MB' 
+    : Math.round(totalSize/1024) + ' KB';
+  document.getElementById('stat-types').textContent = types.size;
+}
+
+// ── Handle file upload from topbar / input btn ──
+function handleFileUpload(files) {
+  if (!files || files.length === 0) return;
+  addPanelFiles(files);
+  // Switch to upload tab
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel-tab')[2].classList.add('active');
+  document.getElementById('tab-upload').classList.add('active');
+  showNotif(`Đã thêm ${files.length} file — đặt tên tệp và nhấn Tạo tệp`, 'info');
+}
+
+// ── Chat ──
+function escapeHtml(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function injectCitationRefs(html, citeCount) {
+  const max = parseInt(citeCount, 10) || 0;
+  return html.replace(/\[(\d+)\]/g, (_, n) => {
+    const i = parseInt(n, 10);
+    if (!max || i < 1 || i > max) return `[${n}]`;
+    return `<sup><a href="#cite-fn-${n}" class="cite-ref" data-cite="${n}" onclick="scrollToCiteFootnote(event, '${n}')">${n}</a></sup>`;
+  });
+}
+
+function formatBotMessageHtml(rawText, opts) {
+  const isHtml = opts && opts.isHtml;
+  const citeCount = opts && opts.citeCount != null ? opts.citeCount : 0;
+  let body = isHtml ? rawText : escapeHtml(rawText).replace(/\n/g, '<br>');
+  if (!isHtml) body = injectCitationRefs(body, citeCount);
+  return body;
+}
+
+function formatCitationPage(page) {
+  if (page == null || page === '') return '';
+  const s = String(page).trim();
+  if (/trang/i.test(s)) return s;
+  return `trang ${s}`;
+}
+
+function highlightFileFromCiteBtn(btn) {
+  if (!btn) return;
+  const f = decodeURIComponent(btn.getAttribute('data-cite-file') || '');
+  highlightFileInPanel(f);
+}
+
+function highlightFileInPanel(fileName) {
+  const name = (fileName || '').trim();
+  if (!name) return;
+  let found = null;
+  document.querySelectorAll('.folder-file').forEach(row => {
+    row.classList.remove('panel-file-highlight');
+    const span = row.querySelector('.file-name');
+    if (span && span.textContent.trim() === name) found = row;
+  });
+  if (found) {
+    const folder = found.closest('.project-folder');
+    if (folder) folder.classList.add('open');
+    found.classList.add('panel-file-highlight');
+    found.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    const firstTab = document.querySelector('.panel-tab');
+    if (firstTab) firstTab.classList.add('active');
+    document.getElementById('tab-info')?.classList.add('active');
+    showNotif(`Đã chọn: ${name}`, 'info');
+  } else {
+    showNotif(`Chưa thấy "${name}" trong danh sách index`, 'warning');
+  }
+}
+
+function scrollToCiteFootnote(ev, n) {
+  if (ev) ev.preventDefault();
+  const el = document.getElementById(`cite-fn-${n}`);
+  if (!el) return false;
+  el.classList.remove('msg-fn-flash');
+  void el.offsetWidth;
+  el.classList.add('msg-fn-flash');
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  return false;
+}
+
+function parseChecklistItems(text) {
+  const lines = String(text || '').split(/\n/);
+  const items = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*[-•*]\s+(.+)/) || line.match(/^\s*\d+[.)]\s+(.+)/);
+    if (m) items.push(m[1].trim());
+  }
+  return items;
+}
+
+function showChecklistModal(text) {
+  const items = parseChecklistItems(text);
+  if (!items.length) {
+    showNotif('Không tìm thấy dòng bullet (-) hoặc số thứ tự trong tin nhắn', 'warning');
+    return;
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'checklist-modal-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div class="checklist-modal" onclick="event.stopPropagation()">
+      <h4>Checklist</h4>
+      <ul>${items.map(it => `<li>${escapeHtml(it)}</li>`).join('')}</ul>
+      <button type="button" class="checklist-modal-close" onclick="this.closest('.checklist-modal-overlay').remove()">Đóng</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function printMessageAsPdf(rawText, title) {
+  const root = document.getElementById('print-root');
+  if (!root) return;
+  const safe = escapeHtml(rawText).replace(/\n/g, '<br>');
+  root.innerHTML = `<h1>${escapeHtml(title || 'TechBot')}</h1><div>${safe}</div>`;
+  window.print();
+  root.innerHTML = '';
+}
+
+function msgActionCopy(id) {
+  const p = msgPayloads.get(id);
+  if (!p || p.raw == null) return;
+  const t = String(p.raw);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(() => showNotif('Đã copy nội dung', 'success')).catch(() => fallbackCopy(t));
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showNotif('Đã copy nội dung', 'success');
+  } catch (e) {
+    showNotif('Không thể copy', 'warning');
+  }
+  ta.remove();
+}
+
+function addMessage(role, text, engine, time, fileName) {
+  document.getElementById('chat-empty')?.remove();
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  const timeStr = time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const fileChip = fileName
+    ? `<div class="bubble-file"><span class="bubble-file-icon">${getFileIcon(fileName)}</span><div><div class="bubble-file-name">${escapeHtml(fileName)}</div><div class="bubble-file-size">Đã đính kèm</div></div></div>`
+    : '';
+  const bodyHtml = escapeHtml(text || '').replace(/\n/g, '<br>');
+  div.className = 'msg user msg-user-row';
+  div.innerHTML = `
+    <div class="msg-user-stack">
+      <div class="bubble-user-new">${fileChip}<div>${bodyHtml}</div></div>
+      <div class="msg-timestamp">${timeStr}</div>
+    </div>
+    <div class="avatar">U</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  msgCount++;
+  document.getElementById('nav-chat-badge').textContent = msgCount;
+}
+
+function addMessageWithActions(content, citations, engine, time, opts) {
+  document.getElementById('chat-empty')?.remove();
+  const msgs = document.getElementById('messages');
+  const o = opts || {};
+  const cites = Array.isArray(citations) ? citations : [];
+  const rawText = content == null ? '' : String(content);
+  const bodyHtml = formatBotMessageHtml(rawText, { ...o, citeCount: cites.length });
+  const timeStr = time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const engineTag = engine
+    ? `<span class="meta-tag ${engine}">${engine === 'gemini' ? '✦ Gemini Flash' : engine === 'groq' ? '⚡ Groq' : '◉ Local'}</span>`
+    : '';
+
+  let footHtml = '';
+  if (cites.length) {
+    const rows = cites.map((c, i) => {
+      const num = i + 1;
+      const fn = (c && c.file) ? String(c.file) : '';
+      const pg = formatCitationPage(c && c.page);
+      const icon = getFileIcon(fn || 'doc');
+      const label = pg ? `${escapeHtml(fn)} — ${escapeHtml(pg)}` : escapeHtml(fn);
+      const enc = encodeURIComponent(fn);
+      return `<button type="button" class="msg-ai-fn" id="cite-fn-${num}" data-cite-file="${enc}" onclick="highlightFileFromCiteBtn(this)">
+        <span class="msg-ai-fn-icon">${icon}</span>
+        <span><span class="msg-ai-fn-target">[${num}]</span> ${label}</span>
+      </button>`;
+    }).join('');
+    footHtml = `<div class="msg-ai-footnotes"><div class="msg-ai-fn-sep"></div>${rows}</div>`;
+  }
+
+  const id = ++msgPayloadId;
+  msgPayloads.set(id, { raw: rawText });
+
+  const div = document.createElement('div');
+  div.className = 'msg bot msg-ai';
+  div.dataset.msgPayloadId = String(id);
+  div.innerHTML = `
+    <div class="msg-ai-inner">
+      <div class="msg-ai-robot" aria-hidden="true" title="TechBot">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a2 2 0 0 1 2 2v1h2a3 3 0 0 1 3 3v2h1v2h-1v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8H3v-2h1V8a3 3 0 0 1 3-3h2V4a2 2 0 0 1 2-2zm0 2a1 1 0 0 0-1 1v1h2V5a1 1 0 0 0-1-1zM7 8a1 1 0 0 0-1 1v2h12V9a1 1 0 0 0-1-1H7zm-1 6v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6H6zm3 2h2v2H9v-2zm4 0h2v2h-2v-2z" fill="currentColor"/></svg>
+      </div>
+      <div class="msg-ai-main">
+        <div class="msg-ai-body">${bodyHtml}</div>
+        ${footHtml}
+        <div class="msg-ai-actions">
+          <button type="button" class="msg-ai-action" title="Tạo checklist" onclick="showChecklistModal(msgPayloads.get(${id}).raw)"><span class="msg-ai-action-ico">📋</span></button>
+          <button type="button" class="msg-ai-action" title="Xuất PDF" onclick="printMessageAsPdf(msgPayloads.get(${id}).raw, 'TechBot')"><span class="msg-ai-action-ico">📤</span></button>
+          <button type="button" class="msg-ai-action" title="Hỏi thêm" onclick="document.getElementById('chat-input').value='Giải thích thêm về '; document.getElementById('chat-input').focus(); autoResize(document.getElementById('chat-input'))"><span class="msg-ai-action-ico">🔁</span></button>
+          <button type="button" class="msg-ai-action" title="Phản hồi tốt" onclick="showNotif('Cảm ơn phản hồi!', 'success')"><span class="msg-ai-action-ico">👍</span></button>
+          <button type="button" class="msg-ai-action" title="Phản hồi chưa tốt" onclick="showNotif('Đã ghi nhận — chúng tôi sẽ cải thiện', 'info')"><span class="msg-ai-action-ico">👎</span></button>
+          <button type="button" class="msg-ai-action" title="Copy" onclick="msgActionCopy(${id})"><span class="msg-ai-action-ico">📋</span></button>
+        </div>
+        <div class="msg-ai-meta">
+          ${engineTag}
+          <span class="msg-timestamp">${timeStr}</span>
+        </div>
+      </div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  msgCount++;
+  document.getElementById('nav-chat-badge').textContent = msgCount;
+}
+
+async function sendMessage() {
+  const ta = document.getElementById('chat-input');
+  const text = ta.value.trim();
+  if (!text && pendingFiles.length === 0) return;
+  const fileObj = pendingFiles.length > 0 ? pendingFiles[0] : null;
+  const fileName = fileObj ? fileObj.name : null;
+  addMessage('user', text || '(Đính kèm file)', null, null, fileName);
+  ta.value = ''; ta.style.height = '';
+  document.getElementById('upload-previews').innerHTML = '';
+  showThinkingIndicator();
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    let userContent = text || '';
+    if (fileObj) {
+      showNotif(`Đang đọc file ${fileName}...`, 'info');
+      userContent += `\n\n[File đính kèm: ${fileName}]`;
+    }
+    conversationHistory.push({ role: 'user', content: userContent });
+    const res = await fetch('/api/chat', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ 
+        messages: conversationHistory, 
+        fileName: fileName || null,
+        roleContext: rolePrompts[currentRole],
+        roleName: roleNames[currentRole],
+        project: window.currentProject || null
+      })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const reply = data.reply || '(Không có phản hồi)';
+    conversationHistory.push({ role: 'assistant', content: reply });
+    await hideThinkingIndicator();
+    const citations = data.citations || [];
+    if (citations.length > 0) {
+      addMessageWithActions(reply, citations, data.engine || 'groq', null, { isHtml: false, citeCount: citations.length });
+    } else {
+      addMessage('bot', reply, data.engine || 'groq', null, null);
+    }
+  } catch (err) {
+    await hideThinkingIndicator();
+    addMessage('bot', `⚠️ <strong>Lỗi:</strong> ${err.message}<br><br>Kiểm tra <code>GROQ_API_KEY</code> trên Vercel.`, 'local', null, null);
+  } finally {
+    pendingFiles = [];
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  document.getElementById('chat-empty')?.remove();
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = 'typing-msg';
+  div.innerHTML = `<div class="avatar">⚙</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() {
+  const t = document.getElementById('typing-msg'); if (t) t.remove();
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function handleInputChange(el) {
+  const value = el.value;
+  // Check for @file mention pattern
+  const fileMatch = value.match(/@(\S+\.\w+)/);
+  if (fileMatch) {
+    const fileName = fileMatch[1];
+    document.getElementById('file-context-indicator').classList.add('show');
+    document.getElementById('file-context-name').textContent = fileName;
+    window.taggedFile = fileName;
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+function clearChat() {
+  document.getElementById('messages').innerHTML = '<div class="chat-empty" id="chat-empty"><div class="chat-empty-icon">⚙</div><p>Tải tệp lên hoặc bắt đầu đặt câu hỏi kỹ thuật</p></div>';
+  conversationHistory = [];
+  msgCount = 0;
+  document.getElementById('nav-chat-badge').textContent = '0';
+  showNotif('Đã xóa lịch sử chat', 'info');
+}
+
+function switchTab(el, id) {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+function switchNav(el, id) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('topbar-sub').textContent = '/ ' + id;
+}
+function showNotif(msg, type='info') {
+  const icons = {success:'✓', info:'ℹ', warning:'⚠'};
+  const n = document.createElement('div');
+  n.className = `notif ${type}`;
+  n.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3000);
+}
+function checkResponsive() {
+  document.getElementById('menu-btn').style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkResponsive);
+checkResponsive();
+</script>
+</body>
+</html>
