@@ -729,6 +729,38 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.export-wrap { position: relative; display: inline-block; }
+.export-menu {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1f2e;
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 130px;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.export-menu.open { display: block; }
+.export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 5px;
+  white-space: nowrap;
+  text-align: left;
+}
+.export-menu-item:hover { background: rgba(0,212,255,0.1); color: #00d4ff; }
 .msg-suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -2325,6 +2357,150 @@ function useSuggestion(btn) {
   btn.closest('.msg-suggestions')?.querySelectorAll('.suggestion-chip').forEach(c => c.disabled = true);
 }
 
+// ── Export helpers ────────────────────────────────────────────────────────────
+
+function toggleExportMenu(btn) {
+  const menu = btn.nextElementSibling;
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.export-menu.open').forEach(m => m.classList.remove('open'));
+  if (!isOpen) {
+    menu.classList.add('open');
+    const close = (e) => { if (!btn.closest('.export-wrap').contains(e.target)) { menu.classList.remove('open'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
+}
+
+function loadCdnScript(src) {
+  if (window._cdnLoaded && window._cdnLoaded[src]) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script'); s.src = src;
+    s.onload = () => { (window._cdnLoaded = window._cdnLoaded || {})[src] = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function mdToHtmlExport(text) {
+  let h = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+  const lines = h.split('\n');
+  const out = []; let inList = false; let inTable = false; let tableHtml = '';
+  for (const line of lines) {
+    if (/^\|.+\|$/.test(line) && !/^\|[-| :]+\|$/.test(line)) {
+      if (!inTable) { inTable = true; tableHtml = '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;margin:8px 0">'; }
+      const cells = line.split('|').slice(1,-1).map(c=>`<td style="border:1px solid #ccc;padding:6px">${c.trim()}</td>`).join('');
+      tableHtml += `<tr>${cells}</tr>`;
+    } else {
+      if (inTable) { out.push(tableHtml + '</table>'); inTable = false; tableHtml = ''; }
+      if (/^\|[-| :]+\|$/.test(line)) continue;
+      if (/^[-+*] /.test(line) || /^\d+\. /.test(line)) {
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push(`<li>${line.replace(/^[-+*] |^\d+\. /,'')}</li>`);
+      } else {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(line ? `<p>${line}</p>` : '');
+      }
+    }
+  }
+  if (inTable) out.push(tableHtml + '</table>');
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+
+function parseMdTables(text) {
+  const tables = []; let rows = []; let inTable = false;
+  for (const line of text.split('\n')) {
+    if (/^\|.+\|$/.test(line) && !/^\|[-| :]+\|$/.test(line)) {
+      inTable = true;
+      rows.push(line.split('|').slice(1,-1).map(c => c.trim()));
+    } else if (/^\|[-| :]+\|$/.test(line)) {
+      continue;
+    } else {
+      if (inTable && rows.length) { tables.push(rows); rows = []; inTable = false; }
+    }
+  }
+  if (rows.length) tables.push(rows);
+  return tables;
+}
+
+function getExportFilename(id) {
+  return (window.currentProject || 'TechBot') + '_' + id;
+}
+
+async function exportMsg(id, fmt) {
+  document.querySelectorAll('.export-menu.open').forEach(m => m.classList.remove('open'));
+  const payload = msgPayloads.get(id);
+  if (!payload) return;
+  const text = payload.raw || '';
+  const name = getExportFilename(id);
+  showNotif('Đang tạo file...', 'info');
+  try {
+    if (fmt === 'txt') {
+      downloadBlob(new Blob([text], {type:'text/plain;charset=utf-8'}), name + '.txt');
+    } else if (fmt === 'doc') {
+      const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.6}table{border-collapse:collapse}td{border:1px solid #999;padding:6px}</style></head><body>${mdToHtmlExport(text)}</body></html>`;
+      downloadBlob(new Blob(['﻿', html], {type:'application/msword'}), name + '.doc');
+    } else if (fmt === 'xlsx') {
+      await loadCdnScript('https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js');
+      const wb = XLSX.utils.book_new();
+      const tables = parseMdTables(text);
+      if (tables.length) {
+        tables.forEach((t, i) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(t), 'Bảng ' + (i+1)));
+      } else {
+        const rows = text.split('\n').filter(l=>l.trim()).map(l => [l.replace(/^\*\*|\*\*$|^[-+*] /g,'')]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Nội dung');
+      }
+      XLSX.writeFile(wb, name + '.xlsx');
+    } else if (fmt === 'pptx') {
+      await loadCdnScript('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+      const pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_16x9';
+      const DARK='0A0E1A', ACCENT='00D4FF', LIGHT='CCCCCC', MUTED='666688';
+      // Title slide
+      const tSlide = pptx.addSlide(); tSlide.background={color:DARK};
+      tSlide.addText(window.currentProject || 'TechBot Export', {x:0.5,y:1.8,w:9,h:1.2,fontSize:32,bold:true,color:ACCENT,align:'center'});
+      tSlide.addText(new Date().toLocaleDateString('vi-VN'), {x:0.5,y:3.2,w:9,h:0.5,fontSize:14,color:MUTED,align:'center'});
+      // Content slides — split by headings or every 6 bullets
+      const lines = text.split('\n').filter(l=>l.trim());
+      let slideTitle='', bullets=[];
+      const flushSlide = () => {
+        if (!bullets.length && !slideTitle) return;
+        const sl = pptx.addSlide(); sl.background={color:DARK};
+        if (slideTitle) sl.addText(slideTitle,{x:0.4,y:0.2,w:9.2,h:0.8,fontSize:22,bold:true,color:ACCENT});
+        if (bullets.length) sl.addText(bullets.slice(0,7).map(b=>({text:b,options:{bullet:{indent:10}}})),{x:0.5,y:1.1,w:9,h:5.3,fontSize:14,color:LIGHT,valign:'top',lineSpacingMultiple:1.3});
+        slideTitle=''; bullets=[];
+      };
+      for (const line of lines) {
+        if (/^\*\*(.+)\*\*$/.test(line)||/^#{1,3} /.test(line)) {
+          flushSlide();
+          slideTitle = line.replace(/^\*\*|\*\*$|^#{1,3} /g,'');
+        } else if (/^[-+*] |^\d+\. /.test(line)) {
+          bullets.push(line.replace(/^[-+*] |^\d+\. /,''));
+          if (bullets.length >= 7) flushSlide();
+        } else {
+          bullets.push(line);
+          if (bullets.length >= 7) flushSlide();
+        }
+      }
+      flushSlide();
+      await pptx.writeFile({fileName: name + '.pptx'});
+    }
+    showNotif('✓ Đã tải file ' + fmt.toUpperCase(), 'success');
+  } catch(e) {
+    showNotif('Lỗi xuất file: ' + e.message, 'error');
+  }
+}
+
 function highlightFileFromCiteBtn(btn) {
   if (!btn) return;
   const f = decodeURIComponent(btn.getAttribute('data-cite-file') || '');
@@ -2509,6 +2685,15 @@ function addMessageWithActions(content, citations, engine, time, opts) {
         <div class="msg-ai-actions">
           <button type="button" class="msg-ai-action" title="Tạo checklist" onclick="showChecklistModal(msgPayloads.get(${id}).raw)"><span class="msg-ai-action-ico">📋</span></button>
           <button type="button" class="msg-ai-action" title="Xuất PDF" onclick="printMessageAsPdf(msgPayloads.get(${id}).raw, 'TechBot')"><span class="msg-ai-action-ico">📤</span></button>
+          <div class="export-wrap">
+            <button type="button" class="msg-ai-action" title="Tải về file" onclick="toggleExportMenu(this)"><span class="msg-ai-action-ico">⬇</span></button>
+            <div class="export-menu">
+              <button class="export-menu-item" onclick="exportMsg(${id},'txt')">📄 Text (.txt)</button>
+              <button class="export-menu-item" onclick="exportMsg(${id},'doc')">📝 Word (.doc)</button>
+              <button class="export-menu-item" onclick="exportMsg(${id},'xlsx')">📊 Excel (.xlsx)</button>
+              <button class="export-menu-item" onclick="exportMsg(${id},'pptx')">📑 PowerPoint (.pptx)</button>
+            </div>
+          </div>
           <button type="button" class="msg-ai-action" title="Hỏi thêm" onclick="document.getElementById('chat-input').value='Giải thích thêm về '; document.getElementById('chat-input').focus(); autoResize(document.getElementById('chat-input'))"><span class="msg-ai-action-ico">🔁</span></button>
           <button type="button" class="msg-ai-action" title="Phản hồi tốt" onclick="showNotif('Cảm ơn phản hồi!', 'success')"><span class="msg-ai-action-ico">👍</span></button>
           <button type="button" class="msg-ai-action" title="Phản hồi chưa tốt" onclick="showNotif('Đã ghi nhận — chúng tôi sẽ cải thiện', 'info')"><span class="msg-ai-action-ico">👎</span></button>
