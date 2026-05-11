@@ -38,9 +38,9 @@ ${roleContext}
 Hãy điều chỉnh phong cách trả lời phù hợp với vai trò này.`;
 }
 
-async function getRagContext(userMessage, project) {
+async function getRagContext(userMessage, project, geminiKey) {
   try {
-    const embedding = await createEmbedding(userMessage);
+    const embedding = await createEmbedding(userMessage, geminiKey);
     const chunks = await searchDocuments(embedding, project || null);
     if (!chunks || chunks.length === 0) return { contextBlock: '', citations: [] };
 
@@ -82,23 +82,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages = [], fileName = null, roleContext = null, roleName = null, project = null } = req.body || {};
+  const {
+    messages = [], fileName = null, roleContext = null, roleName = null, project = null,
+    userKeys = {}
+  } = req.body || {};
+
+  // Ưu tiên key từ user, fallback về env var
+  const groqKey   = userKeys.groq   || process.env.GROQ_API_KEY;
+  const geminiKey = userKeys.gemini || process.env.GEMINI_API_KEY;
 
   if (!messages.length) {
     return res.status(400).json({ error: 'messages là bắt buộc' });
   }
 
-  // ── Chọn engine ──
   // Nếu fileName là ảnh/PDF → thử Gemini; còn lại dùng Groq
   const isVisionFile = fileName && /\.(png|jpg|jpeg|gif|webp|pdf)$/i.test(fileName);
-  const useGemini    = isVisionFile && !!process.env.GEMINI_API_KEY;
+  const useGemini    = isVisionFile && !!geminiKey;
 
   try {
-    // RAG: tìm context từ tài liệu đã index
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
-    const { contextBlock, citations } = await getRagContext(lastUserMsg, project);
+    const { contextBlock, citations } = await getRagContext(lastUserMsg, project, geminiKey);
 
-    // Inject context vào messages nếu có
     let augmentedMessages = messages;
     if (contextBlock) {
       augmentedMessages = messages.map((m, i) => {
@@ -111,9 +115,9 @@ export default async function handler(req, res) {
 
     let reply, engine;
     if (useGemini) {
-      ({ reply, engine } = await callGemini(augmentedMessages, fileName, roleContext, roleName));
+      ({ reply, engine } = await callGemini(augmentedMessages, fileName, roleContext, roleName, geminiKey, groqKey));
     } else {
-      ({ reply, engine } = await callGroq(augmentedMessages, fileName, roleContext, roleName));
+      ({ reply, engine } = await callGroq(augmentedMessages, fileName, roleContext, roleName, groqKey));
     }
 
     return res.status(200).json({ reply, engine, citations, chunks_used: citations.length });
@@ -124,54 +128,50 @@ export default async function handler(req, res) {
   }
 }
 
+function groqApiError(status, message) {
+  if (status === 429) return new Error('RATE_LIMIT: Groq API key đã vượt quota. Thử lại sau ít phút hoặc nhập key riêng trong Cài đặt.');
+  if (status === 401 || status === 403) return new Error('INVALID_KEY: Groq API key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
+  return new Error(message || `Groq API lỗi: ${status}`);
+}
+
+function geminiApiError(status, message) {
+  if (status === 429) return new Error('RATE_LIMIT: Gemini API key đã vượt quota. Thử lại sau ít phút hoặc nhập key riêng trong Cài đặt.');
+  if (status === 401 || status === 403) return new Error('INVALID_KEY: Gemini API key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
+  return new Error(message || `Gemini API lỗi: ${status}`);
+}
+
 // ── Groq (llama-3.3-70b-versatile) ──
-async function callGroq(messages, fileName, roleContext, roleName) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY chưa được cấu hình trên Vercel');
+async function callGroq(messages, fileName, roleContext, roleName, groqKey) {
+  const apiKey = groqKey;
+  if (!apiKey) throw new Error('Thiếu Groq API key — vào Cài đặt để nhập key của bạn');
 
   const systemPrompt = getSystemPrompt(roleContext, roleName);
   const groqMessages = [
     { role: 'system', content: systemPrompt },
-    ...messages.map(m => ({
-      role: m.role,
-      content: m.content
-    }))
+    ...messages.map(m => ({ role: m.role, content: m.content }))
   ];
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: groqMessages,
-      max_tokens: 1024,
-      temperature: 0.7
-    })
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: groqMessages, max_tokens: 1024, temperature: 0.7 })
   });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Groq API lỗi: ${response.status}`);
+    throw groqApiError(response.status, err.error?.message);
   }
 
   const data = await response.json();
-  return {
-    reply: data.choices?.[0]?.message?.content || '(Không có phản hồi)',
-    engine: 'groq'
-  };
+  return { reply: data.choices?.[0]?.message?.content || '(Không có phản hồi)', engine: 'groq' };
 }
 
-// ── Gemini Flash (cho vision/PDF) ──
-async function callGemini(messages, fileName, roleContext, roleName) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY chưa được cấu hình');
+// ── Gemini Flash ──
+async function callGemini(messages, fileName, roleContext, roleName, geminiKey, groqKey) {
+  const apiKey = geminiKey;
+  if (!apiKey) throw new Error('Thiếu Gemini API key — vào Cài đặt để nhập key của bạn');
 
   const systemPrompt = getSystemPrompt(roleContext, roleName);
-  
-  // Lấy message cuối của user
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
   const prompt = lastUserMsg?.content || '';
 
@@ -181,23 +181,23 @@ async function callGemini(messages, fileName, roleContext, roleName) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: `${systemPrompt}\n\nUser: ${prompt}` }]
-        }],
+        contents: [{ parts: [{ text: `${systemPrompt}\n\nUser: ${prompt}` }] }],
         generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
       })
     }
   );
 
   if (!response.ok) {
-    // Fallback sang Groq nếu Gemini lỗi
-    return callGroq(messages, fileName, roleContext, roleName);
+    const err = await response.json().catch(() => ({}));
+    const apiErr = geminiApiError(response.status, err.error?.message);
+    // Fallback sang Groq chỉ khi lỗi không phải key/quota
+    if (response.status !== 429 && response.status !== 401 && response.status !== 403) {
+      return callGroq(messages, fileName, roleContext, roleName, groqKey);
+    }
+    throw apiErr;
   }
 
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  return {
-    reply: text || '(Không có phản hồi)',
-    engine: 'gemini'
-  };
+  return { reply: text || '(Không có phản hồi)', engine: 'gemini' };
 }

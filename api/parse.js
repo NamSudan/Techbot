@@ -33,15 +33,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { fileName, fileBase64, mimeType } = req.body || {};
+  const { fileName, fileBase64, mimeType, userKeys = {} } = req.body || {};
   if (!fileName || !fileBase64) {
     return res.status(400).json({ error: 'Thiếu fileName hoặc fileBase64' });
   }
 
+  const geminiKey = userKeys.gemini || process.env.GEMINI_API_KEY;
+
   try {
-    const buffer    = Buffer.from(fileBase64, 'base64');
-    const ext       = fileName.split('.').pop().toLowerCase();
-    const hasGemini = !!process.env.GEMINI_API_KEY;
+    const buffer = Buffer.from(fileBase64, 'base64');
+    const ext    = fileName.split('.').pop().toLowerCase();
 
     let result = { extractedText: '', method: '', imageDescriptions: [], fileName };
 
@@ -53,36 +54,36 @@ export default async function handler(req, res) {
 
     // ── DOCX — text + ảnh embedded ──
     else if (['docx', 'doc'].includes(ext)) {
-      result = await parseDocx(buffer, fileName, hasGemini);
+      result = await parseDocx(buffer, fileName, geminiKey);
     }
 
     // ── XLSX — sheets + ảnh embedded ──
     else if (['xlsx', 'xls'].includes(ext)) {
-      result = await parseXlsx(buffer, fileName, hasGemini);
+      result = await parseXlsx(buffer, fileName, geminiKey);
     }
 
     // ── PDF — Gemini Vision (tốt nhất, đọc cả hình) ──
     else if (ext === 'pdf') {
-      if (hasGemini) {
-        const text = await callGeminiVision(fileBase64, 'application/pdf', VISION_PROMPT_PDF);
+      if (geminiKey) {
+        const text = await callGeminiVision(fileBase64, 'application/pdf', VISION_PROMPT_PDF, geminiKey);
         result.extractedText = text;
         result.method = 'gemini-vision-pdf';
       } else {
         result.extractedText = extractPdfTextRaw(buffer);
         result.method = 'pdf-raw-text';
-        result.warning = 'Thêm GEMINI_API_KEY để đọc hình ảnh trong PDF';
+        result.warning = 'Nhập Gemini API key trong Cài đặt để đọc hình ảnh trong PDF';
       }
     }
 
     // ── ẢNH trực tiếp ──
     else if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext)) {
-      if (hasGemini) {
+      if (geminiKey) {
         const imgMime = mimeType || `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-        const text    = await callGeminiVision(fileBase64, imgMime, VISION_PROMPT_IMAGE);
+        const text    = await callGeminiVision(fileBase64, imgMime, VISION_PROMPT_IMAGE, geminiKey);
         result.extractedText = text;
         result.method = 'gemini-vision-image';
       } else {
-        result.extractedText = `[File ảnh: ${fileName} — cần GEMINI_API_KEY để phân tích]`;
+        result.extractedText = `[File ảnh: ${fileName} — nhập Gemini API key trong Cài đặt để phân tích]`;
         result.method = 'no-vision';
       }
     }
@@ -139,13 +140,12 @@ async function extractDocxXmlText(buffer) {
   }
 }
 
-async function parseDocx(buffer, fileName, hasGemini) {
+async function parseDocx(buffer, fileName, geminiKey) {
   const mammoth = (await import('mammoth')).default;
   let textContent = '';
   let imageDescs  = [];
   let method      = 'mammoth-text';
 
-  // Bước 1: Trích xuất text
   try {
     const r = await mammoth.extractRawText({ buffer });
     textContent = r.value.slice(0, 50000);
@@ -153,7 +153,6 @@ async function parseDocx(buffer, fileName, hasGemini) {
     textContent = `[Lỗi đọc text DOCX: ${e.message}]`;
   }
 
-  // Fallback: nếu mammoth trả về ít text, đọc XML trực tiếp để lấy nội dung text boxes
   if (textContent.length < 100) {
     const xmlText = await extractDocxXmlText(buffer);
     if (xmlText.length > textContent.length) {
@@ -162,8 +161,7 @@ async function parseDocx(buffer, fileName, hasGemini) {
     }
   }
 
-  // Bước 2: Trích xuất hình ảnh embedded (DOCX là file ZIP)
-  if (hasGemini) {
+  if (geminiKey) {
     try {
       const { default: JSZip } = await import('jszip');
       const zip      = await JSZip.loadAsync(buffer);
@@ -174,17 +172,17 @@ async function parseDocx(buffer, fileName, hasGemini) {
       });
 
       if (imgFiles.length > 0) {
-        const limit = Math.min(imgFiles.length, 5); // Tối đa 5 ảnh
+        const limit = Math.min(imgFiles.length, 20);
         for (let i = 0; i < limit; i++) {
           const imgBuf  = await zip.files[imgFiles[i]].async('nodebuffer');
           const imgB64  = imgBuf.toString('base64');
           const imgExt  = imgFiles[i].split('.').pop().toLowerCase();
           const imgMime = `image/${imgExt === 'jpg' ? 'jpeg' : imgExt}`;
           try {
-            const desc = await callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE);
+            const desc = await callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE, geminiKey);
             imageDescs.push(desc);
-          } catch {
-            imageDescs.push(`[Không đọc được hình ${i + 1}]`);
+          } catch (e) {
+            imageDescs.push(`[Không đọc được hình ${i + 1}: ${e.message}]`);
           }
         }
         method = `mammoth+gemini-vision (${imgFiles.length} ảnh)`;
@@ -199,16 +197,12 @@ async function parseDocx(buffer, fileName, hasGemini) {
   return { extractedText: textContent, method, imageDescriptions: imageDescs, fileName };
 }
 
-// ══════════════════════════════════════════
-// PARSER: XLSX (sheets + ảnh embedded)
-// ══════════════════════════════════════════
-async function parseXlsx(buffer, fileName, hasGemini) {
+async function parseXlsx(buffer, fileName, geminiKey) {
   const XLSX = await import('xlsx');
   let textContent = '';
   let imageDescs  = [];
   let method      = 'xlsx-parser';
 
-  // Bước 1: Trích xuất data từ tất cả sheets
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const lines    = [];
@@ -222,8 +216,7 @@ async function parseXlsx(buffer, fileName, hasGemini) {
     textContent = `[Lỗi đọc XLSX: ${e.message}]`;
   }
 
-  // Bước 2: Trích xuất ảnh trong XLSX (cũng là file ZIP)
-  if (hasGemini) {
+  if (geminiKey) {
     try {
       const { default: JSZip } = await import('jszip');
       const zip      = await JSZip.loadAsync(buffer);
@@ -233,17 +226,17 @@ async function parseXlsx(buffer, fileName, hasGemini) {
       });
 
       if (imgFiles.length > 0) {
-        const limit = Math.min(imgFiles.length, 3); // Tối đa 3 ảnh
+        const limit = Math.min(imgFiles.length, 20);
         for (let i = 0; i < limit; i++) {
           const imgBuf  = await zip.files[imgFiles[i]].async('nodebuffer');
           const imgB64  = imgBuf.toString('base64');
           const imgExt  = imgFiles[i].split('.').pop().toLowerCase();
           const imgMime = `image/${imgExt === 'jpg' ? 'jpeg' : imgExt}`;
           try {
-            const desc = await callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE);
+            const desc = await callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE, geminiKey);
             imageDescs.push(desc);
-          } catch {
-            imageDescs.push(`[Không đọc được hình ${i + 1}]`);
+          } catch (e) {
+            imageDescs.push(`[Không đọc được hình ${i + 1}: ${e.message}]`);
           }
         }
         method = `xlsx+gemini-vision (${imgFiles.length} ảnh)`;
@@ -259,34 +252,45 @@ async function parseXlsx(buffer, fileName, hasGemini) {
 // ══════════════════════════════════════════
 // Gemini Vision API
 // ══════════════════════════════════════════
-async function callGeminiVision(base64Data, mimeType, prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Thiếu GEMINI_API_KEY');
+async function callGeminiVision(base64Data, mimeType, prompt, geminiKey, retries = 3) {
+  const apiKey = geminiKey || process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('Thiếu Gemini API key — vào Cài đặt để nhập key của bạn');
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mimeType, data: base64Data } },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.1 }
-      })
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mimeType, data: base64Data } },
+              { text: prompt }
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 4096, temperature: 0.1 }
+        })
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '[Không có kết quả Vision]';
     }
-  );
 
-  if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini lỗi ${response.status}`);
-  }
+    const msg = err.error?.message || `Gemini lỗi ${response.status}`;
 
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '[Không có kết quả Vision]';
+    if ((response.status === 429 || response.status >= 500) && attempt < retries) {
+      const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+      console.warn(`[Gemini] ${msg} — retry ${attempt + 1}/${retries} sau ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
+      continue;
+    }
+
+    throw new Error(msg);
+  }
 }
 
 // ══════════════════════════════════════════

@@ -1274,6 +1274,50 @@ textarea::placeholder { color: var(--text3); }
 .notif.success { border-left: 3px solid var(--green); }
 .notif.info    { border-left: 3px solid var(--accent); }
 .notif.warning { border-left: 3px solid var(--amber); }
+.notif.error   { border-left: 3px solid var(--red); }
+
+/* ── SETTINGS PANEL ── */
+.settings-panel {
+  display: none; flex-direction: column; gap: 24px;
+  padding: 32px; overflow-y: auto; height: 100%;
+}
+.settings-panel.active { display: flex; }
+.settings-section { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.settings-section-title {
+  font-size: 11px; font-weight: 600; letter-spacing: .08em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 16px;
+}
+.settings-key-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.settings-key-row:last-child { margin-bottom: 0; }
+.settings-key-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.settings-key-label a { color: var(--accent); text-decoration: none; font-size: 11px; }
+.settings-key-label a:hover { text-decoration: underline; }
+.settings-key-input-row { display: flex; gap: 8px; }
+.settings-key-input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 12px; color: var(--text);
+  font-family: var(--font-mono); font-size: 12px; outline: none;
+  transition: border-color .2s;
+}
+.settings-key-input:focus { border-color: var(--accent); }
+.settings-key-input::placeholder { color: var(--text3); }
+.settings-key-btn {
+  background: var(--bg4); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 9px 14px; color: var(--text2); font-size: 12px; cursor: pointer;
+  white-space: nowrap; transition: all .15s;
+}
+.settings-key-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+.settings-key-status {
+  font-size: 11px; height: 16px; display: flex; align-items: center; gap: 5px;
+}
+.settings-key-status.ok    { color: var(--green); }
+.settings-key-status.error { color: var(--red); }
+.settings-key-status.checking { color: var(--amber); }
+.settings-info-box {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; font-size: 12px; color: var(--text2); line-height: 1.6;
+}
+.settings-info-box b { color: var(--text); }
 
 /* ── MODAL ── */
 .modal-overlay {
@@ -1665,6 +1709,60 @@ textarea::placeholder { color: var(--text3); }
             <span class="hint-chip"><span class="hint-key">Enter</span> gửi</span>
             <span class="hint-chip"><span class="hint-key">Shift+Enter</span> xuống dòng</span>
             <span class="hint-chip"><span class="hint-key">@file</span> tag file</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS PANEL ── -->
+      <div class="settings-panel" id="settings-panel">
+        <div class="settings-section">
+          <div class="settings-section-title">API Keys — Groq</div>
+          <div class="settings-key-row">
+            <div class="settings-key-label">
+              Groq API Key
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener">↗ Lấy key miễn phí</a>
+            </div>
+            <div class="settings-key-input-row">
+              <input type="password" class="settings-key-input" id="input-groq-key"
+                placeholder="gsk_xxxxxxxxxxxxxxxxxxxx"
+                oninput="clearKeyStatus('groq')"/>
+              <button class="settings-key-btn" onclick="testAndSaveKey('groq')">Kiểm tra &amp; Lưu</button>
+              <button class="settings-key-btn" onclick="clearKey('groq')" title="Xóa key">✕</button>
+            </div>
+            <div class="settings-key-status" id="status-groq"></div>
+          </div>
+          <div class="settings-info-box">
+            Dùng cho chat text (Llama 3.3-70B). <b>Miễn phí</b> với giới hạn 6,000 token/phút.<br>
+            Khi nhiều người dùng chung 1 key sẽ bị rate limit — hãy dùng key riêng để tránh lỗi.
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">API Keys — Google Gemini</div>
+          <div class="settings-key-row">
+            <div class="settings-key-label">
+              Gemini API Key
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">↗ Lấy key miễn phí</a>
+            </div>
+            <div class="settings-key-input-row">
+              <input type="password" class="settings-key-input" id="input-gemini-key"
+                placeholder="AIzaSyxxxxxxxxxxxxxxxxx"
+                oninput="clearKeyStatus('gemini')"/>
+              <button class="settings-key-btn" onclick="testAndSaveKey('gemini')">Kiểm tra &amp; Lưu</button>
+              <button class="settings-key-btn" onclick="clearKey('gemini')" title="Xóa key">✕</button>
+            </div>
+            <div class="settings-key-status" id="status-gemini"></div>
+          </div>
+          <div class="settings-info-box">
+            Dùng cho đọc ảnh &amp; PDF (Vision), và tạo embedding cho tìm kiếm tài liệu.<br>
+            <b>Miễn phí</b> 1,500 request/ngày. Cần key này để index và trả lời từ hình ảnh.
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Trạng thái hiện tại</div>
+          <div id="settings-status-display" class="settings-info-box" style="line-height:2">
+            Đang tải...
           </div>
         </div>
       </div>
@@ -2134,7 +2232,8 @@ async function createProjectFromPanel() {
           fileBase64: b64,
           mimeType: file.type,
           project: name,
-          role: currentRole
+          role: currentRole,
+          userKeys: getUserKeys()
         })
       });
       const result = await res.json();
@@ -2870,17 +2969,28 @@ async function sendMessage() {
     conversationHistory.push({ role: 'user', content: userContent });
     const res = await fetch('/api/chat', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ 
-        messages: conversationHistory, 
+      body: JSON.stringify({
+        messages: conversationHistory,
         fileName: fileName || null,
         roleContext: rolePrompts[currentRole],
         roleName: roleNames[currentRole],
-        project: window.currentProject || null
+        project: window.currentProject || null,
+        userKeys: getUserKeys()
       })
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      throw new Error(errBody.error || `HTTP ${res.status}`);
+      const errMsg = errBody.error || `HTTP ${res.status}`;
+      // Hiển thị thông báo cụ thể cho rate limit / invalid key
+      if (errMsg.startsWith('RATE_LIMIT:')) {
+        showNotif(errMsg.replace('RATE_LIMIT: ', ''), 'error');
+        throw new Error(errMsg.replace('RATE_LIMIT: ', ''));
+      }
+      if (errMsg.startsWith('INVALID_KEY:')) {
+        showNotif(errMsg.replace('INVALID_KEY: ', '') + ' → Vào Cài đặt để cập nhật key.', 'error');
+        throw new Error(errMsg.replace('INVALID_KEY: ', ''));
+      }
+      throw new Error(errMsg);
     }
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
@@ -2980,14 +3090,113 @@ function switchNav(el, id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('topbar-sub').textContent = '/ ' + id;
+
+  const chatPanel = document.querySelector('.chat-panel');
+  const settingsPanel = document.getElementById('settings-panel');
+  if (id === 'settings') {
+    chatPanel.style.display = 'none';
+    settingsPanel.classList.add('active');
+    initSettingsPanel();
+  } else {
+    chatPanel.style.display = '';
+    settingsPanel.classList.remove('active');
+  }
+}
+
+// ── API Keys (localStorage) ──
+function getUserKeys() {
+  return {
+    groq:   localStorage.getItem('techbot_groq_key')   || '',
+    gemini: localStorage.getItem('techbot_gemini_key') || ''
+  };
+}
+
+function initSettingsPanel() {
+  const keys = getUserKeys();
+  const inputGroq   = document.getElementById('input-groq-key');
+  const inputGemini = document.getElementById('input-gemini-key');
+  if (keys.groq   && inputGroq)   { inputGroq.value   = keys.groq;   showKeyStatus('groq',   'ok', '✓ Đã lưu'); }
+  if (keys.gemini && inputGemini) { inputGemini.value = keys.gemini; showKeyStatus('gemini', 'ok', '✓ Đã lưu'); }
+  updateSettingsStatusDisplay();
+}
+
+function showKeyStatus(provider, type, msg) {
+  const el = document.getElementById(`status-${provider}`);
+  if (!el) return;
+  el.className = `settings-key-status ${type}`;
+  el.textContent = msg;
+}
+
+function clearKeyStatus(provider) {
+  const el = document.getElementById(`status-${provider}`);
+  if (el) { el.className = 'settings-key-status'; el.textContent = ''; }
+}
+
+function clearKey(provider) {
+  localStorage.removeItem(`techbot_${provider}_key`);
+  const input = document.getElementById(`input-${provider}-key`);
+  if (input) input.value = '';
+  showKeyStatus(provider, '', '');
+  updateSettingsStatusDisplay();
+  showNotif(`Đã xóa ${provider.toUpperCase()} API key`, 'info');
+}
+
+async function testAndSaveKey(provider) {
+  const input = document.getElementById(`input-${provider}-key`);
+  const key = input?.value?.trim();
+  if (!key) { showKeyStatus(provider, 'error', '✗ Vui lòng nhập key'); return; }
+
+  showKeyStatus(provider, 'checking', '⟳ Đang kiểm tra...');
+
+  try {
+    if (provider === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      if (res.status === 401 || res.status === 403) throw new Error('Key không hợp lệ');
+      if (res.status === 429) throw new Error('Key hợp lệ nhưng đang bị rate limit');
+      if (!res.ok) throw new Error(`Lỗi ${res.status}`);
+      localStorage.setItem('techbot_groq_key', key);
+      showKeyStatus('groq', 'ok', '✓ Key hợp lệ — đã lưu');
+      showNotif('✓ Groq API key hợp lệ và đã lưu', 'success');
+    } else {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
+      );
+      if (res.status === 400 || res.status === 401 || res.status === 403) throw new Error('Key không hợp lệ');
+      if (res.status === 429) throw new Error('Key hợp lệ nhưng đang bị rate limit');
+      if (!res.ok) throw new Error(`Lỗi ${res.status}`);
+      localStorage.setItem('techbot_gemini_key', key);
+      showKeyStatus('gemini', 'ok', '✓ Key hợp lệ — đã lưu');
+      showNotif('✓ Gemini API key hợp lệ và đã lưu', 'success');
+    }
+    updateSettingsStatusDisplay();
+  } catch (e) {
+    showKeyStatus(provider, 'error', `✗ ${e.message}`);
+    showNotif(`${provider.toUpperCase()} key lỗi: ${e.message}`, 'error');
+  }
+}
+
+function updateSettingsStatusDisplay() {
+  const el = document.getElementById('settings-status-display');
+  if (!el) return;
+  const keys = getUserKeys();
+  const groqSrc   = keys.groq   ? '<b style="color:var(--green)">Key riêng của bạn</b>' : '<span style="color:var(--amber)">Key chung của hệ thống</span>';
+  const geminiSrc = keys.gemini ? '<b style="color:var(--green)">Key riêng của bạn</b>' : '<span style="color:var(--amber)">Key chung của hệ thống</span>';
+  el.innerHTML = `
+    🤖 Groq (Chat): ${groqSrc}<br>
+    👁 Gemini (Vision + Embedding): ${geminiSrc}<br>
+    <span style="color:var(--text3);font-size:11px">Key được lưu trên trình duyệt của bạn, không gửi đến server ngoài API call.</span>
+  `;
 }
 function showNotif(msg, type='info') {
-  const icons = {success:'✓', info:'ℹ', warning:'⚠'};
+  const icons = {success:'✓', info:'ℹ', warning:'⚠', error:'✗'};
   const n = document.createElement('div');
   n.className = `notif ${type}`;
-  n.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  n.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${msg}</span>`;
   document.body.appendChild(n);
-  setTimeout(() => n.remove(), 3000);
+  const dur = type === 'error' ? 5000 : 3000;
+  setTimeout(() => n.remove(), dur);
 }
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
