@@ -270,6 +270,24 @@ async function extractText(fileName, fileBase64, mimeType, geminiKey) {
   return { extractedText, imageObjects };
 }
 
+function recommendModel(ext, textChunks, imageChunks) {
+  // File ảnh trực tiếp
+  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext)) {
+    return { model: 'gemini', reason: 'File ảnh — cần Gemini Vision để phân tích nội dung', required: true };
+  }
+  // PDF — thường cần Vision
+  if (ext === 'pdf') {
+    if (textChunks === 0) return { model: 'gemini', reason: 'PDF scan/ảnh — không có text layer, cần Gemini Vision', required: true };
+    return { model: 'gemini', reason: 'PDF có thể chứa sơ đồ/bảng — Gemini Vision cho kết quả tốt hơn', required: false };
+  }
+  // DOCX/XLSX có nhiều ảnh
+  if (['docx', 'doc', 'xlsx', 'xls'].includes(ext) && imageChunks > 3) {
+    return { model: 'gemini', reason: `Tài liệu có ${imageChunks} hình ảnh minh họa — Gemini Vision đọc được nội dung ảnh`, required: false };
+  }
+  // Văn bản thuần hoặc ít ảnh
+  return { model: 'groq', reason: 'Tài liệu chủ yếu là text — Groq (Llama) nhanh và hiệu quả', required: false };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -338,11 +356,16 @@ export default async function handler(req, res) {
       await saveChunks(rows);
     }
 
+    const imageChunks = rows.filter(r => r.chunk_type === 'image').length;
+    const textChunks  = rows.filter(r => r.chunk_type === 'text').length;
+    const recommendation = recommendModel(ext, textChunks, imageChunks);
+
     return res.status(200).json({
       ok: true,
       fileName,
       chunks: rows.length,
-      method: isImage ? 'vision' : 'text'
+      method: isImage ? 'vision' : 'text',
+      recommendation
     });
 
   } catch (err) {

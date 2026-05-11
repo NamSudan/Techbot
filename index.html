@@ -1278,8 +1278,8 @@ textarea::placeholder { color: var(--text3); }
 
 /* ── SETTINGS PANEL ── */
 .settings-panel {
-  display: none; flex-direction: column; gap: 24px;
-  padding: 32px; overflow-y: auto; height: 100%;
+  display: none; flex: 1; flex-direction: column; gap: 24px;
+  padding: 32px; overflow-y: auto; min-width: 0;
 }
 .settings-panel.active { display: flex; }
 .settings-section { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
@@ -2168,7 +2168,20 @@ function openFile(el, name, type, size, project) {
           <span>Sẵn sàng</span>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${(function(){
+      const rec = window._fileRecommendations && window._fileRecommendations[name];
+      if (!rec) return '';
+      const isGemini = rec.model === 'gemini';
+      const color = isGemini ? 'var(--purple)' : 'var(--accent)';
+      const badge = isGemini ? '👁 Gemini Vision' : '⚡ Groq / Llama';
+      const reqTag = rec.required ? '<span style="color:var(--red);font-size:10px"> · Bắt buộc</span>' : '';
+      return `<div style="margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${color}">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">MODEL GỢI Ý</div>
+        <div style="font-size:12px;font-weight:600;color:${color}">${badge}${reqTag}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">${rec.reason}</div>
+      </div>`;
+    })()}`;
 
   // Switch to info tab
   document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
@@ -2240,6 +2253,10 @@ async function createProjectFromPanel() {
       if (!res.ok || result.error) {
         showNotif(`Lỗi index "${file.name}": ${result.error || res.status}`, 'error');
         console.error('Ingest error:', file.name, result);
+      } else if (result.recommendation) {
+        // Lưu recommendation để hiển thị trong panel thông tin
+        if (!window._fileRecommendations) window._fileRecommendations = {};
+        window._fileRecommendations[file.name] = result.recommendation;
       }
     } catch(e) {
       showNotif(`Lỗi index "${file.name}": ${e.message}`, 'error');
@@ -3089,7 +3106,8 @@ function refreshExistingProjectChips() {
 function switchNav(el, id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('topbar-sub').textContent = '/ ' + id;
+  const sub = document.getElementById('topbar-sub');
+  if (sub) sub.textContent = '/ ' + id;
 
   const chatPanel = document.querySelector('.chat-panel');
   const settingsPanel = document.getElementById('settings-panel');
