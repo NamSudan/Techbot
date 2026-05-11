@@ -729,6 +729,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.msg-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.suggestion-chip {
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.suggestion-chip:hover {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: rgba(0, 212, 255, 0.5);
+}
 .msg-ai-meta {
   display: flex;
   align-items: center;
@@ -1585,7 +1606,17 @@ let currentRole = 'engineer';
 
 let thinkingIndicatorTimeouts = [];
 
-function showThinkingIndicator() {
+function detectThinkingMode(text, hasFile, hasProject) {
+  const GREETINGS = /^(xin chào|chào|hello|hi|hey|ok|oke|được|cảm ơn|thanks|thank you|tốt|👍|😊|có|không|ừ|uhm|vâng|dạ)\b/i;
+  const isShort = text.trim().length < 25;
+  const isGreeting = GREETINGS.test(text.trim());
+  if (hasFile) return 'file';
+  if (isShort && isGreeting) return 'chat';
+  if (hasProject || totalFileCount > 0) return 'rag';
+  return 'chat';
+}
+
+function showThinkingIndicator(mode = 'chat') {
   thinkingIndicatorTimeouts.forEach(clearTimeout);
   thinkingIndicatorTimeouts = [];
   document.getElementById('thinking-indicator-msg')?.remove();
@@ -1596,31 +1627,38 @@ function showThinkingIndicator() {
   const wrap = document.createElement('div');
   wrap.className = 'msg bot thinking-indicator-wrap';
   wrap.id = 'thinking-indicator-msg';
-  wrap.innerHTML = `
-    <div class="avatar">⚙</div>
-    <div class="thinking-indicator">
-      <div class="thinking-row" data-thinking-step="0">
-        <span class="thinking-label">Đang phân tích câu hỏi...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-      <div class="thinking-row" data-thinking-step="1">
-        <span class="thinking-label">Tìm kiếm tài liệu liên quan...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-      <div class="thinking-row" data-thinking-step="2">
-        <span class="thinking-label">Đọc nội dung phù hợp...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-      <div class="thinking-row" data-thinking-step="3">
-        <span class="thinking-label">Đang tổng hợp câu trả lời...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-    </div>`;
+
+  const steps = {
+    chat: [
+      'Đang trả lời...'
+    ],
+    file: [
+      'Đọc file đính kèm...',
+      'Phân tích nội dung...',
+      'Đang soạn câu trả lời...'
+    ],
+    rag: [
+      'Đang phân tích câu hỏi...',
+      'Tìm kiếm tài liệu liên quan...',
+      'Đọc nội dung phù hợp...',
+      'Đang tổng hợp câu trả lời...'
+    ]
+  };
+
+  const stepLabels = steps[mode] || steps.chat;
+  const stepsHtml = stepLabels.map((label, i) => `
+    <div class="thinking-row" data-thinking-step="${i}">
+      <span class="thinking-label">${label}</span>
+      <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+    </div>`).join('');
+
+  wrap.innerHTML = `<div class="avatar">⚙</div><div class="thinking-indicator">${stepsHtml}</div>`;
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
 
   const rows = wrap.querySelectorAll('.thinking-row');
-  const delays = [0, 600, 1400, 2000];
+  const baseDelay = mode === 'chat' ? 0 : 600;
+  const delays = stepLabels.map((_, i) => i * baseDelay);
 
   function setStepActive(index) {
     rows.forEach((row, i) => {
@@ -2278,6 +2316,15 @@ function formatCitationPage(page) {
   return `trang ${s}`;
 }
 
+function useSuggestion(btn) {
+  const text = btn.textContent.trim();
+  const ta = document.getElementById('chat-input');
+  ta.value = text;
+  ta.focus();
+  autoResize(ta);
+  btn.closest('.msg-suggestions')?.querySelectorAll('.suggestion-chip').forEach(c => c.disabled = true);
+}
+
 function highlightFileFromCiteBtn(btn) {
   if (!btn) return;
   const f = decodeURIComponent(btn.getAttribute('data-cite-file') || '');
@@ -2401,12 +2448,21 @@ function addMessage(role, text, engine, time, fileName) {
   document.getElementById('nav-chat-badge').textContent = msgCount;
 }
 
+function parseSuggestions(reply) {
+  const match = reply.match(/💡\s*GỢI\s*Ý\s*:\s*(.+)$/m);
+  if (!match) return { cleanReply: reply, suggestions: [] };
+  const cleanReply = reply.slice(0, match.index).trimEnd();
+  const suggestions = match[1].split('|').map(s => s.replace(/^\[|\]$/g, '').trim()).filter(Boolean);
+  return { cleanReply, suggestions };
+}
+
 function addMessageWithActions(content, citations, engine, time, opts) {
   document.getElementById('chat-empty')?.remove();
   const msgs = document.getElementById('messages');
   const o = opts || {};
   const cites = Array.isArray(citations) ? citations : [];
-  const rawText = content == null ? '' : String(content);
+  const { cleanReply, suggestions } = parseSuggestions(content == null ? '' : String(content));
+  const rawText = cleanReply;
   const bodyHtml = formatBotMessageHtml(rawText, { ...o, citeCount: cites.length });
   const timeStr = time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const engineTag = engine
@@ -2430,6 +2486,11 @@ function addMessageWithActions(content, citations, engine, time, opts) {
     footHtml = `<div class="msg-ai-footnotes"><div class="msg-ai-fn-sep"></div>${rows}</div>`;
   }
 
+  const suggestHtml = suggestions.length ? `
+    <div class="msg-suggestions">
+      ${suggestions.map(s => `<button type="button" class="suggestion-chip" onclick="useSuggestion(this)">${escapeHtml(s)}</button>`).join('')}
+    </div>` : '';
+
   const id = ++msgPayloadId;
   msgPayloads.set(id, { raw: rawText });
 
@@ -2444,6 +2505,7 @@ function addMessageWithActions(content, citations, engine, time, opts) {
       <div class="msg-ai-main">
         <div class="msg-ai-body">${bodyHtml}</div>
         ${footHtml}
+        ${suggestHtml}
         <div class="msg-ai-actions">
           <button type="button" class="msg-ai-action" title="Tạo checklist" onclick="showChecklistModal(msgPayloads.get(${id}).raw)"><span class="msg-ai-action-ico">📋</span></button>
           <button type="button" class="msg-ai-action" title="Xuất PDF" onclick="printMessageAsPdf(msgPayloads.get(${id}).raw, 'TechBot')"><span class="msg-ai-action-ico">📤</span></button>
@@ -2473,7 +2535,8 @@ async function sendMessage() {
   addMessage('user', text || '(Đính kèm file)', null, null, fileName);
   ta.value = ''; ta.style.height = '';
   document.getElementById('upload-previews').innerHTML = '';
-  showThinkingIndicator();
+  const thinkingMode = detectThinkingMode(text, !!fileObj, !!window.currentProject);
+  showThinkingIndicator(thinkingMode);
   document.getElementById('send-btn').disabled = true;
 
   try {
@@ -2499,7 +2562,8 @@ async function sendMessage() {
     }
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
-    conversationHistory.push({ role: 'assistant', content: reply });
+    const { cleanReply } = parseSuggestions(reply);
+    conversationHistory.push({ role: 'assistant', content: cleanReply });
     await hideThinkingIndicator();
     const citations = data.citations || [];
     if (citations.length > 0) {
