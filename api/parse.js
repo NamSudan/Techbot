@@ -26,7 +26,7 @@ const VISION_PROMPT_PDF = `Đây là tài liệu kỹ thuật PDF. Hãy trích x
 5. Chú thích, ghi chú, footnote
 Trả về text đầy đủ, có cấu trúc.`;
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -119,7 +119,7 @@ module.exports = async function handler(req, res) {
 // PARSER: DOCX (text + ảnh embedded)
 // ══════════════════════════════════════════
 async function parseDocx(buffer, fileName, hasGemini) {
-  const mammoth = require('mammoth');
+  const mammoth = (await import('mammoth')).default;
   let textContent = '';
   let imageDescs  = [];
   let method      = 'mammoth-text';
@@ -135,7 +135,7 @@ async function parseDocx(buffer, fileName, hasGemini) {
   // Bước 2: Trích xuất hình ảnh embedded (DOCX là file ZIP)
   if (hasGemini) {
     try {
-      const JSZip    = require('jszip');
+      const { default: JSZip } = await import('jszip');
       const zip      = await JSZip.loadAsync(buffer);
       const imgExts  = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
       const imgFiles = Object.keys(zip.files).filter(name => {
@@ -173,7 +173,7 @@ async function parseDocx(buffer, fileName, hasGemini) {
 // PARSER: XLSX (sheets + ảnh embedded)
 // ══════════════════════════════════════════
 async function parseXlsx(buffer, fileName, hasGemini) {
-  const XLSX = require('xlsx');
+  const XLSX = await import('xlsx');
   let textContent = '';
   let imageDescs  = [];
   let method      = 'xlsx-parser';
@@ -195,7 +195,7 @@ async function parseXlsx(buffer, fileName, hasGemini) {
   // Bước 2: Trích xuất ảnh trong XLSX (cũng là file ZIP)
   if (hasGemini) {
     try {
-      const JSZip    = require('jszip');
+      const { default: JSZip } = await import('jszip');
       const zip      = await JSZip.loadAsync(buffer);
       const imgFiles = Object.keys(zip.files).filter(name => {
         const e = name.split('.').pop().toLowerCase();
