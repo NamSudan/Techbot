@@ -42,7 +42,7 @@ async function getRagContext(userMessage, project, geminiKey) {
   try {
     const embedding = await createEmbedding(userMessage, geminiKey);
     const chunks = await searchDocuments(embedding, project || null);
-    if (!chunks || chunks.length === 0) return { contextBlock: '', citations: [] };
+    if (!chunks || chunks.length === 0) return { contextBlock: '', citations: [], failedImages: 0 };
 
     const citations = chunks.map((c, i) => ({
       num: i + 1,
@@ -53,21 +53,29 @@ async function getRagContext(userMessage, project, geminiKey) {
       image_url: c.image_url || null
     }));
 
+    const failedImages = citations.filter(c =>
+      c.type === 'image' && c.text && c.text.includes('Không đọc được hình')
+    ).length;
+
     const uniqueFiles = [...new Set(citations.map(c => c.file))];
     const filesSummary = uniqueFiles.length > 1
       ? `Tìm thấy thông tin từ ${uniqueFiles.length} file: ${uniqueFiles.join(', ')}.`
       : `Tìm thấy thông tin từ file: ${uniqueFiles[0]}.`;
 
-    const contextBlock = `\n\n=== TÀI LIỆU THAM KHẢO ===\n${filesSummary}\n\n${
+    let contextBlock = `\n\n=== TÀI LIỆU THAM KHẢO ===\n${filesSummary}\n\n${
       citations.map(c =>
         `[${c.num}] ${c.file}${c.page ? ` – trang ${c.page}` : ''}${c.type === 'image' ? ' [HÌNH ẢNH]' : ''}\n${c.text}`
       ).join('\n\n')
     }\n=== HẾT TÀI LIỆU ===\nTrích dẫn [số] sau câu sử dụng thông tin từ nguồn đó.`;
 
-    return { contextBlock, citations };
+    if (failedImages > 0 && !geminiKey) {
+      contextBlock += `\n\n[LƯU Ý HỆ THỐNG: ${failedImages} hình ảnh trong tài liệu chưa được đọc do thiếu Gemini API key. Hãy thông báo cho user rằng để xem nội dung hình ảnh, họ cần nhập Gemini API key vào mục Cài đặt (góc trái sidebar). Key miễn phí tại aistudio.google.com]`;
+    }
+
+    return { contextBlock, citations, failedImages };
   } catch (e) {
     console.error('RAG error:', e.message);
-    return { contextBlock: '', citations: [] };
+    return { contextBlock: '', citations: [], failedImages: 0 };
   }
 }
 
@@ -101,7 +109,7 @@ export default async function handler(req, res) {
 
   try {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
-    const { contextBlock, citations } = await getRagContext(lastUserMsg, project, geminiKey);
+    const { contextBlock, citations, failedImages } = await getRagContext(lastUserMsg, project, geminiKey);
 
     let augmentedMessages = messages;
     if (contextBlock) {
@@ -120,7 +128,7 @@ export default async function handler(req, res) {
       ({ reply, engine } = await callGroq(augmentedMessages, fileName, roleContext, roleName, groqKey));
     }
 
-    return res.status(200).json({ reply, engine, citations, chunks_used: citations.length });
+    return res.status(200).json({ reply, engine, citations, chunks_used: citations.length, failedImages });
 
   } catch (err) {
     console.error('API error:', err);
