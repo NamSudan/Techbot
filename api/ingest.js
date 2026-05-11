@@ -22,31 +22,46 @@ const VISION_PROMPT_PDF = `Đây là tài liệu kỹ thuật PDF. Hãy trích x
 5. Chú thích, ghi chú, footnote
 Trả về text đầy đủ, có cấu trúc.`;
 
-async function callGeminiVision(base64Data, mimeType, prompt) {
+async function callGeminiVision(base64Data, mimeType, prompt, retries = 3) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('Thiếu GEMINI_API_KEY');
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mimeType, data: base64Data } },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.1 }
-      })
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mimeType, data: base64Data } },
+              { text: prompt }
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 4096, temperature: 0.1 }
+        })
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
-  );
-  if (!response.ok) {
+
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini lỗi ${response.status}`);
+    const msg = err.error?.message || `Gemini lỗi ${response.status}`;
+
+    // Rate limit (429) hoặc server error (5xx): retry sau delay
+    if ((response.status === 429 || response.status >= 500) && attempt < retries) {
+      const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+      console.warn(`[Gemini] ${msg} — retry ${attempt + 1}/${retries} sau ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
+      continue;
+    }
+
+    throw new Error(msg);
   }
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 async function uploadImageToSupabase(base64Data, fileName, pageNum, imgIndex) {
