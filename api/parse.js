@@ -118,6 +118,27 @@ export default async function handler(req, res) {
 // ══════════════════════════════════════════
 // PARSER: DOCX (text + ảnh embedded)
 // ══════════════════════════════════════════
+// Extract all <w:t> text nodes from DOCX XML, including text boxes
+async function extractDocxXmlText(buffer) {
+  try {
+    const { default: JSZip } = await import('jszip');
+    const zip = await JSZip.loadAsync(buffer);
+    const xmlSources = ['word/document.xml', 'word/header1.xml', 'word/header2.xml',
+      'word/footer1.xml', 'word/footer2.xml'];
+    const parts = [];
+    for (const src of xmlSources) {
+      if (zip.files[src]) {
+        const xml = await zip.files[src].async('string');
+        const matches = xml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+        parts.push(matches.map(m => m.replace(/<[^>]+>/g, '')).join(' '));
+      }
+    }
+    return parts.join('\n').replace(/\s+/g, ' ').trim();
+  } catch {
+    return '';
+  }
+}
+
 async function parseDocx(buffer, fileName, hasGemini) {
   const mammoth = (await import('mammoth')).default;
   let textContent = '';
@@ -127,9 +148,18 @@ async function parseDocx(buffer, fileName, hasGemini) {
   // Bước 1: Trích xuất text
   try {
     const r = await mammoth.extractRawText({ buffer });
-    textContent = r.value.slice(0, 12000);
+    textContent = r.value.slice(0, 50000);
   } catch (e) {
     textContent = `[Lỗi đọc text DOCX: ${e.message}]`;
+  }
+
+  // Fallback: nếu mammoth trả về ít text, đọc XML trực tiếp để lấy nội dung text boxes
+  if (textContent.length < 100) {
+    const xmlText = await extractDocxXmlText(buffer);
+    if (xmlText.length > textContent.length) {
+      textContent = xmlText.slice(0, 50000);
+      method = 'xml-fallback';
+    }
   }
 
   // Bước 2: Trích xuất hình ảnh embedded (DOCX là file ZIP)

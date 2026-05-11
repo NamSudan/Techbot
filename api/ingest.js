@@ -96,6 +96,27 @@ function extractPdfTextRaw(buffer) {
   }
 }
 
+// Extract all <w:t> text nodes from DOCX XML, including text boxes
+async function extractDocxXmlText(buffer) {
+  try {
+    const { default: JSZip } = await import('jszip');
+    const zip = await JSZip.loadAsync(buffer);
+    const xmlSources = ['word/document.xml', 'word/header1.xml', 'word/header2.xml',
+      'word/footer1.xml', 'word/footer2.xml'];
+    const parts = [];
+    for (const src of xmlSources) {
+      if (zip.files[src]) {
+        const xml = await zip.files[src].async('string');
+        const matches = xml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+        parts.push(matches.map(m => m.replace(/<[^>]+>/g, '')).join(' '));
+      }
+    }
+    return parts.join('\n').replace(/\s+/g, ' ').trim();
+  } catch {
+    return '';
+  }
+}
+
 async function parseDocx(buffer, hasGemini, fileName) {
   const mammoth = (await import('mammoth')).default;
   let textContent = '';
@@ -103,9 +124,15 @@ async function parseDocx(buffer, hasGemini, fileName) {
 
   try {
     const r = await mammoth.extractRawText({ buffer });
-    textContent = r.value.slice(0, 12000);
+    textContent = r.value;
   } catch (e) {
     textContent = `[Lỗi đọc text DOCX: ${e.message}]`;
+  }
+
+  // Fallback: nếu mammoth trả về ít text, đọc XML trực tiếp để lấy nội dung text boxes
+  if (textContent.length < 100) {
+    const xmlText = await extractDocxXmlText(buffer);
+    if (xmlText.length > textContent.length) textContent = xmlText;
   }
 
   if (hasGemini) {
@@ -155,7 +182,7 @@ async function parseXlsx(buffer, hasGemini, fileName) {
       const csv = XLSX.utils.sheet_to_csv(ws, { blankrows: false });
       if (csv.trim()) lines.push(`=== Sheet: ${sheetName} ===\n${csv}`);
     });
-    textContent = lines.join('\n\n').slice(0, 12000);
+    textContent = lines.join('\n\n');
   } catch (e) {
     textContent = `[Lỗi đọc XLSX: ${e.message}]`;
   }
@@ -202,7 +229,7 @@ async function extractText(fileName, fileBase64, mimeType) {
   let imageObjects = [];
 
   if (['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
-    extractedText = buffer.toString('utf-8').slice(0, 15000);
+    extractedText = buffer.toString('utf-8');
   } else if (['docx', 'doc'].includes(ext)) {
     const r = await parseDocx(buffer, hasGemini, fileName);
     extractedText = r.extractedText;
