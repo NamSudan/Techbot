@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>TechBot — Trợ lý Kỹ thuật</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -32,12 +32,16 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-main); overflow: hidden; }
+/* dvh = dynamic viewport height: tính đúng khi browser chrome hiện/ẩn trên mobile */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+}
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
-.app { display: flex; height: 100vh; }
+.app { display: flex; height: 100vh; height: 100dvh; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -963,7 +967,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 
 /* ── INPUT ── */
-.input-area { padding: 14px 20px 18px; border-top: 1px solid var(--border); background: var(--bg2); }
+.input-area {
+  padding: 14px 20px 18px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom, 18px));
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+}
 
 /* File context indicator */
 .file-context-indicator {
