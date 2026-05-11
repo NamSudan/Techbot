@@ -1967,7 +1967,7 @@ function addProjectToSidebar(name, files, icon) {
   const safeProject = name.replace(/'/g, "\\'");
 
   // Build a single file row HTML
-  function makeFileRow(fileName, size) {
+  function makeFileRow(fileName, size, chunks) {
     const ext  = getExt(fileName);
     const sz   = size > 1048576 ? (size/1048576).toFixed(1)+'M' : size > 1024 ? Math.round(size/1024)+'K' : '';
     const safe = fileName.replace(/'/g, "\\'");
@@ -1989,7 +1989,7 @@ function addProjectToSidebar(name, files, icon) {
     existing.querySelector('.folder-empty')?.remove();
     meta.forEach(f => {
       if (existing.querySelector(`.folder-file[data-filename="${f.fileName.replace(/"/g,'&quot;')}"]`)) return;
-      filesContainer.insertAdjacentHTML('beforeend', makeFileRow(f.fileName, f.size));
+      filesContainer.insertAdjacentHTML('beforeend', makeFileRow(f.fileName, f.size, f.chunks));
     });
     const newCount = existing.querySelectorAll('.folder-file').length;
     existing.querySelector('.folder-badge').textContent = newCount;
@@ -2003,7 +2003,7 @@ function addProjectToSidebar(name, files, icon) {
   document.getElementById('sidebar-empty')?.remove();
   const id = 'proj-' + (projectCount++);
   const filesHtml = meta.length > 0
-    ? meta.map(f => makeFileRow(f.fileName, f.size)).join('')
+    ? meta.map(f => makeFileRow(f.fileName, f.size, f.chunks)).join('')
     : `<div class="folder-empty"><span>📂</span><span>Kéo file vào để thêm</span></div>`;
 
   const div = document.createElement('div');
