@@ -145,7 +145,7 @@ async function parseDocx(buffer, hasGemini, fileName) {
         return name.startsWith('word/media/') && imgExts.includes(e);
       });
 
-      const limit = Math.min(imgFiles.length, 5);
+      const limit = Math.min(imgFiles.length, 20);
       for (let i = 0; i < limit; i++) {
         const imgBuf = await zip.files[imgFiles[i]].async('nodebuffer');
         const imgB64 = imgBuf.toString('base64');
@@ -196,7 +196,7 @@ async function parseXlsx(buffer, hasGemini, fileName) {
         return name.startsWith('xl/media/') && ['png', 'jpg', 'jpeg', 'gif', 'bmp'].includes(e);
       });
 
-      const limit = Math.min(imgFiles.length, 3);
+      const limit = Math.min(imgFiles.length, 20);
       for (let i = 0; i < limit; i++) {
         const imgBuf = await zip.files[imgFiles[i]].async('nodebuffer');
         const imgB64 = imgBuf.toString('base64');

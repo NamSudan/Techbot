@@ -174,7 +174,7 @@ async function parseDocx(buffer, fileName, hasGemini) {
       });
 
       if (imgFiles.length > 0) {
-        const limit = Math.min(imgFiles.length, 5); // Tối đa 5 ảnh
+        const limit = Math.min(imgFiles.length, 20);
         for (let i = 0; i < limit; i++) {
           const imgBuf  = await zip.files[imgFiles[i]].async('nodebuffer');
           const imgB64  = imgBuf.toString('base64');
@@ -233,7 +233,7 @@ async function parseXlsx(buffer, fileName, hasGemini) {
       });
 
       if (imgFiles.length > 0) {
-        const limit = Math.min(imgFiles.length, 3); // Tối đa 3 ảnh
+        const limit = Math.min(imgFiles.length, 20);
         for (let i = 0; i < limit; i++) {
           const imgBuf  = await zip.files[imgFiles[i]].async('nodebuffer');
           const imgB64  = imgBuf.toString('base64');
