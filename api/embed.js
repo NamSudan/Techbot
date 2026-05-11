@@ -3,10 +3,16 @@
  * Dùng Gemini text-embedding-004 (768 chiều)
  */
 
+function geminiApiError(status, message) {
+  if (status === 429) return new Error(`RATE_LIMIT: Gemini API key đã vượt quota. Thử lại sau ít phút hoặc dùng key riêng trong Cài đặt.`);
+  if (status === 401 || status === 403) return new Error(`INVALID_KEY: Gemini API key không hợp lệ hoặc không có quyền truy cập.`);
+  return new Error(message || `Gemini Embed lỗi: ${status}`);
+}
+
 // Tạo embedding từ text dùng Gemini
-export async function createEmbedding(text) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Thiếu GEMINI_API_KEY');
+export async function createEmbedding(text, geminiKey) {
+  const apiKey = geminiKey || process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('Thiếu GEMINI_API_KEY — vào Cài đặt để nhập key của bạn');
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`,
@@ -23,7 +29,7 @@ export async function createEmbedding(text) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini Embed lỗi: ${response.status}`);
+    throw geminiApiError(response.status, err.error?.message);
   }
 
   const data = await response.json();
