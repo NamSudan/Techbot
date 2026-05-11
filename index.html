@@ -729,6 +729,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.msg-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.suggestion-chip {
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.suggestion-chip:hover {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: rgba(0, 212, 255, 0.5);
+}
 .msg-ai-meta {
   display: flex;
   align-items: center;
@@ -2295,6 +2316,15 @@ function formatCitationPage(page) {
   return `trang ${s}`;
 }
 
+function useSuggestion(btn) {
+  const text = btn.textContent.trim();
+  const ta = document.getElementById('chat-input');
+  ta.value = text;
+  ta.focus();
+  autoResize(ta);
+  btn.closest('.msg-suggestions')?.querySelectorAll('.suggestion-chip').forEach(c => c.disabled = true);
+}
+
 function highlightFileFromCiteBtn(btn) {
   if (!btn) return;
   const f = decodeURIComponent(btn.getAttribute('data-cite-file') || '');
@@ -2418,12 +2448,21 @@ function addMessage(role, text, engine, time, fileName) {
   document.getElementById('nav-chat-badge').textContent = msgCount;
 }
 
+function parseSuggestions(reply) {
+  const match = reply.match(/💡\s*GỢI\s*Ý\s*:\s*(.+)$/m);
+  if (!match) return { cleanReply: reply, suggestions: [] };
+  const cleanReply = reply.slice(0, match.index).trimEnd();
+  const suggestions = match[1].split('|').map(s => s.replace(/^\[|\]$/g, '').trim()).filter(Boolean);
+  return { cleanReply, suggestions };
+}
+
 function addMessageWithActions(content, citations, engine, time, opts) {
   document.getElementById('chat-empty')?.remove();
   const msgs = document.getElementById('messages');
   const o = opts || {};
   const cites = Array.isArray(citations) ? citations : [];
-  const rawText = content == null ? '' : String(content);
+  const { cleanReply, suggestions } = parseSuggestions(content == null ? '' : String(content));
+  const rawText = cleanReply;
   const bodyHtml = formatBotMessageHtml(rawText, { ...o, citeCount: cites.length });
   const timeStr = time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const engineTag = engine
@@ -2447,6 +2486,11 @@ function addMessageWithActions(content, citations, engine, time, opts) {
     footHtml = `<div class="msg-ai-footnotes"><div class="msg-ai-fn-sep"></div>${rows}</div>`;
   }
 
+  const suggestHtml = suggestions.length ? `
+    <div class="msg-suggestions">
+      ${suggestions.map(s => `<button type="button" class="suggestion-chip" onclick="useSuggestion(this)">${escapeHtml(s)}</button>`).join('')}
+    </div>` : '';
+
   const id = ++msgPayloadId;
   msgPayloads.set(id, { raw: rawText });
 
@@ -2461,6 +2505,7 @@ function addMessageWithActions(content, citations, engine, time, opts) {
       <div class="msg-ai-main">
         <div class="msg-ai-body">${bodyHtml}</div>
         ${footHtml}
+        ${suggestHtml}
         <div class="msg-ai-actions">
           <button type="button" class="msg-ai-action" title="Tạo checklist" onclick="showChecklistModal(msgPayloads.get(${id}).raw)"><span class="msg-ai-action-ico">📋</span></button>
           <button type="button" class="msg-ai-action" title="Xuất PDF" onclick="printMessageAsPdf(msgPayloads.get(${id}).raw, 'TechBot')"><span class="msg-ai-action-ico">📤</span></button>
@@ -2517,7 +2562,8 @@ async function sendMessage() {
     }
     const data = await res.json();
     const reply = data.reply || '(Không có phản hồi)';
-    conversationHistory.push({ role: 'assistant', content: reply });
+    const { cleanReply } = parseSuggestions(reply);
+    conversationHistory.push({ role: 'assistant', content: cleanReply });
     await hideThinkingIndicator();
     const citations = data.citations || [];
     if (citations.length > 0) {

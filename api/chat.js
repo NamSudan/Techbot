@@ -18,7 +18,15 @@ Hãy:
 - Nếu được hỏi về file cụ thể mà chưa có nội dung, hãy hướng dẫn user upload
 - Không bịa đặt số liệu kỹ thuật
 
-Lĩnh vực chuyên môn: xây dựng, cơ khí, điện, kết cấu, vật tư công trình.`;
+Lĩnh vực chuyên môn: xây dựng, cơ khí, điện, kết cấu, vật tư công trình.
+
+QUY TẮC TRỢ LÝ CHỦ ĐỘNG:
+- Nếu câu hỏi ngắn/chung chung (ví dụ chỉ là tên thiết bị), hãy tóm tắt nhanh những gì tìm được rồi hỏi lại: "Bạn muốn tìm hiểu thêm về khía cạnh nào?" thay vì đổ toàn bộ thông tin.
+- Nếu tài liệu tham khảo đến từ nhiều file khác nhau, hãy chủ động đề cập: "Tôi tìm thấy thông tin từ X file liên quan..."
+- Cuối mỗi câu trả lời có dùng tài liệu, LUÔN thêm dòng gợi ý theo định dạng CHÍNH XÁC sau (không thay đổi format):
+💡 GỢI Ý: [câu gợi ý 1] | [câu gợi ý 2] | [câu gợi ý 3]
+  (tối đa 3 gợi ý, ngắn gọn dưới 8 từ mỗi cái, liên quan trực tiếp đến nội dung vừa trả lời)
+- Với tin nhắn chào hỏi hoặc không liên quan tài liệu: KHÔNG thêm dòng 💡 GỢI Ý.`;
 
 function getSystemPrompt(roleContext, roleName) {
   if (!roleContext) return BASE_SYSTEM_PROMPT;
@@ -45,7 +53,12 @@ async function getRagContext(userMessage, project) {
       image_url: c.image_url || null
     }));
 
-    const contextBlock = `\n\n=== TÀI LIỆU THAM KHẢO ===\n${
+    const uniqueFiles = [...new Set(citations.map(c => c.file))];
+    const filesSummary = uniqueFiles.length > 1
+      ? `Tìm thấy thông tin từ ${uniqueFiles.length} file: ${uniqueFiles.join(', ')}.`
+      : `Tìm thấy thông tin từ file: ${uniqueFiles[0]}.`;
+
+    const contextBlock = `\n\n=== TÀI LIỆU THAM KHẢO ===\n${filesSummary}\n\n${
       citations.map(c =>
         `[${c.num}] ${c.file}${c.page ? ` – trang ${c.page}` : ''}${c.type === 'image' ? ' [HÌNH ẢNH]' : ''}\n${c.text}`
       ).join('\n\n')
