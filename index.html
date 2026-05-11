@@ -341,95 +341,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   color: var(--accent2);
 }
 
-/* ── DOCUMENT TAGS SYSTEM ── */
-.tags-section {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--border);
-}
-.tags-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px;
-  margin-bottom: 8px;
-}
-.tags-title {
-  font-size: 9px;
-  color: var(--text3);
-  letter-spacing: .1em;
-  font-family: var(--font-mono);
-}
-.tags-add-btn {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  border: none;
-  background: transparent;
-  color: var(--text3);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: all .15s;
-}
-.tags-add-btn:hover {
-  background: var(--bg4);
-  color: var(--accent);
-}
-.tags-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 4px;
-}
-.doc-tag {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--bg3);
-  color: var(--text2);
-  transition: all .15s;
-}
-.doc-tag:hover {
-  border-color: var(--border2);
-  background: var(--bg4);
-}
-.doc-tag.active {
-  border-color: rgba(0,212,255,.35);
-  background: rgba(0,212,255,.08);
-  color: var(--accent);
-}
-.doc-tag-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.doc-tag-count {
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 10px;
-  background: var(--bg4);
-  color: var(--text3);
-}
-.doc-tag.active .doc-tag-count {
-  background: rgba(0,212,255,.15);
-  color: var(--accent);
-}
-/* Tag colors */
-.tag-drawings .doc-tag-dot { background: var(--amber); }
-.tag-docs .doc-tag-dot { background: var(--purple); }
-.tag-specs .doc-tag-dot { background: var(--green); }
-.tag-images .doc-tag-dot { background: var(--accent); }
-.tag-reports .doc-tag-dot { background: var(--red); }
-.tag-data .doc-tag-dot { background: #4ade80; }
-
 /* ── IMPROVED UPLOAD PANEL ── */
 .upload-grid {
   display: grid;
@@ -1449,46 +1360,6 @@ textarea::placeholder { color: var(--text3); }
       </div>
     </nav>
 
-    <!-- ── DOCUMENT TAGS ── -->
-    <div class="tags-section">
-      <div class="tags-header">
-        <span class="tags-title">GẮN THẺ TÀI LIỆU</span>
-        <button class="tags-add-btn" title="Thêm thẻ mới" onclick="showNotif('Tính năng thêm thẻ sẽ sớm ra mắt!','info')">+</button>
-      </div>
-      <div class="tags-list" id="tags-list">
-        <div class="doc-tag tag-drawings active" onclick="toggleTag(this, 'drawings')">
-          <span class="doc-tag-dot"></span>
-          <span>Bản vẽ</span>
-          <span class="doc-tag-count">0</span>
-        </div>
-        <div class="doc-tag tag-docs" onclick="toggleTag(this, 'docs')">
-          <span class="doc-tag-dot"></span>
-          <span>Tài liệu</span>
-          <span class="doc-tag-count">0</span>
-        </div>
-        <div class="doc-tag tag-specs" onclick="toggleTag(this, 'specs')">
-          <span class="doc-tag-dot"></span>
-          <span>Specs</span>
-          <span class="doc-tag-count">0</span>
-        </div>
-        <div class="doc-tag tag-images" onclick="toggleTag(this, 'images')">
-          <span class="doc-tag-dot"></span>
-          <span>Hình ảnh</span>
-          <span class="doc-tag-count">0</span>
-        </div>
-        <div class="doc-tag tag-reports" onclick="toggleTag(this, 'reports')">
-          <span class="doc-tag-dot"></span>
-          <span>Báo cáo</span>
-          <span class="doc-tag-count">0</span>
-        </div>
-        <div class="doc-tag tag-data" onclick="toggleTag(this, 'data')">
-          <span class="doc-tag-dot"></span>
-          <span>Dữ liệu</span>
-          <span class="doc-tag-count">0</span>
-        </div>
-      </div>
-    </div>
-
     <!-- PROJECT FILE TREE -->
     <div class="section-header">
       <span class="section-label">TỆP ĐÃ INDEX</span>
@@ -1616,7 +1487,6 @@ textarea::placeholder { color: var(--text3); }
       <div class="right-panel" id="right-panel">
         <div class="panel-tabs">
           <div class="panel-tab active" onclick="switchTab(this,'tab-info')">Thông tin</div>
-          <div class="panel-tab" onclick="switchTab(this,'tab-preview')">Xem trước</div>
           <div class="panel-tab" onclick="switchTab(this,'tab-upload')">Upload tệp</div>
         </div>
 
@@ -1631,33 +1501,16 @@ textarea::placeholder { color: var(--text3); }
             </div>
           </div>
 
-          <!-- Tab: Preview -->
-          <div class="tab-content" id="tab-preview">
-            <div class="drawing-viewer-controls">
-              <button class="ctrl-btn">🔍 Phóng to</button>
-              <button class="ctrl-btn">↕ Vừa màn hình</button>
-              <button class="ctrl-btn">🖨 In</button>
-            </div>
-            <div class="drawing-viewer">
-              <div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:5px;color:var(--accent)">Preview</div>
-              <div class="drawing-placeholder">
-                <div class="drawing-placeholder-icon">📐</div>
-                <p>Chọn bản vẽ để xem trước</p>
-                <p style="font-size:11px;margin-top:6px;color:#999">Hỗ trợ DWG, DXF, PDF, PNG</p>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);text-align:center">Render bằng ezdxf + svg · Click để zoom</div>
-          </div>
-
           <!-- Tab: Upload -->
           <div class="tab-content" id="tab-upload">
             <div class="upload-project-area">
-              <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:8px">
-                Tạo <strong>tệp dự án</strong> để gom nhóm các file liên quan.
-              </div>
 
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">BƯỚC 1 — ĐẶT TÊN TỆP</div>
-              <input class="project-name-input" id="new-proj-name" placeholder="VD: Nhà máy xi măng Hà Tiên..." />
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">BƯỚC 1 — CHỌN DỰ ÁN</div>
+
+              <!-- Existing project chips -->
+              <div id="existing-proj-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+
+              <input class="project-name-input" id="new-proj-name" placeholder="Tên dự án mới hoặc chọn bên trên..." />
 
               <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin:10px 0 6px">BƯỚC 2 — THÊM FILE</div>
               <div class="dropzone" id="dropzone-panel"
@@ -1729,8 +1582,6 @@ let msgCount = 0;
 let msgPayloadId = 0;
 const msgPayloads = new Map();
 let currentRole = 'engineer';
-let activeTags = ['drawings'];
-let tagCounts = { drawings: 0, docs: 0, specs: 0, images: 0, reports: 0, data: 0 };
 
 let thinkingIndicatorTimeouts = [];
 
@@ -1907,40 +1758,6 @@ function showExtractedContent(fileName) {
   // In a real implementation, this would show extracted text in a modal
 }
 
-// ── Document tags ──
-function toggleTag(el, tag) {
-  el.classList.toggle('active');
-  const idx = activeTags.indexOf(tag);
-  if (idx > -1) {
-    activeTags.splice(idx, 1);
-  } else {
-    activeTags.push(tag);
-  }
-  filterProjectsByTags();
-}
-
-function filterProjectsByTags() {
-  // For now, just show notification. In full impl, filter the file list
-  showNotif(`Bộ lọc: ${activeTags.length > 0 ? activeTags.join(', ') : 'Tất cả'}`, 'info');
-}
-
-function getFileTag(name) {
-  if (/\.(dwg|dxf)$/i.test(name)) return 'drawings';
-  if (/\.(pdf|docx|doc)$/i.test(name)) return 'docs';
-  if (/\.(xlsx|xls|csv)$/i.test(name)) return 'data';
-  if (/\.(png|jpg|jpeg|gif)$/i.test(name)) return 'images';
-  if (/spec|thông số/i.test(name)) return 'specs';
-  if (/report|báo cáo/i.test(name)) return 'reports';
-  return 'docs';
-}
-
-function updateTagCounts() {
-  Object.keys(tagCounts).forEach(tag => {
-    const el = document.querySelector(`.tag-${tag} .doc-tag-count`);
-    if (el) el.textContent = tagCounts[tag];
-  });
-}
-
 function triggerFileInput() {
   document.getElementById('file-input').value = '';
   document.getElementById('file-input').click();
@@ -2011,11 +1828,6 @@ function openFile(el, name, type, size, project) {
       <div class="stat-box"><div class="stat-label">DỰ ÁN</div><div class="stat-value" style="font-size:10px;color:var(--text2)">${project.substring(0,8)}</div></div>`;
   }
 
-  // Generate random index stats
-  const chunks = Math.floor(20 + Math.random() * 60);
-  const tables = Math.floor(Math.random() * 8);
-  const images = Math.floor(Math.random() * 5);
-  
   // Store current file context
   window.currentFileContext = { name, project, ext };
   
@@ -2047,27 +1859,14 @@ function openFile(el, name, type, size, project) {
       <div class="index-stats-header">ĐÃ INDEX</div>
       <div class="index-stats-content">
         <div class="index-stat-item">
-          <span class="index-stat-value">${chunks}</span>
-          <span>đoạn văn bản</span>
+          <span class="index-stat-value" id="info-chunk-count">—</span>
+          <span>đoạn vector</span>
         </div>
-        <div class="index-stat-item">
-          <span class="index-stat-value">${tables}</span>
-          <span>bảng</span>
-        </div>
-        <div class="index-stat-item">
-          <span class="index-stat-value">${images}</span>
-          <span>hình</span>
+        <div class="index-stat-item" id="info-status-item">
+          <span class="index-stat-value" style="color:var(--green)">✓</span>
+          <span>Sẵn sàng</span>
         </div>
       </div>
-    </div>
-    
-    <div class="progress-wrap">
-      <div class="progress-label"><span>Đã trích xuất</span><span style="color:var(--accent)">100%</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-    </div>
-    <div class="progress-wrap">
-      <div class="progress-label"><span>Đã index vector</span><span style="color:var(--green)">84%</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:84%;background:linear-gradient(90deg,var(--green),var(--accent3))"></div></div>
     </div>`;
 
   // Switch to info tab
@@ -2075,6 +1874,18 @@ function openFile(el, name, type, size, project) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelector('.panel-tab').classList.add('active');
   document.getElementById('tab-info').classList.add('active');
+
+  // Load real chunk count from sidebar metadata
+  (function loadChunkCount() {
+    const projEl = document.querySelector(`.project-folder[data-project="${name.replace(/"/g,'&quot;')}"]`) ||
+                   document.querySelector(`.project-folder[data-project="${project.replace(/"/g,'&quot;')}"]`);
+    const fileEl = projEl && projEl.querySelector(`.folder-file[data-filename="${name.replace(/"/g,'&quot;')}"]`);
+    const chunkEl = document.getElementById('info-chunk-count');
+    if (chunkEl) {
+      const chunks = fileEl && fileEl.dataset.chunks ? fileEl.dataset.chunks : '—';
+      chunkEl.textContent = chunks;
+    }
+  })();
 
   showNotif(`📂 ${project} → ${name}`, 'info');
 }
@@ -2140,6 +1951,7 @@ async function createProjectFromPanel() {
   document.getElementById('upload-preview-grid').innerHTML = '';
   document.getElementById('upload-stats').style.display = 'none';
   panelPendingFiles = [];
+  refreshExistingProjectChips();
   showNotif(`✓ Tệp "${name}" đang được index`, 'success');
 }
 
@@ -2159,7 +1971,8 @@ function addProjectToSidebar(name, files, icon) {
     const ext  = getExt(fileName);
     const sz   = size > 1048576 ? (size/1048576).toFixed(1)+'M' : size > 1024 ? Math.round(size/1024)+'K' : '';
     const safe = fileName.replace(/'/g, "\\'");
-    return `<div class="folder-file" data-filename="${fileName.replace(/"/g,'&quot;')}"
+    const chunkAttr = chunks ? ` data-chunks="${chunks}"` : '';
+    return `<div class="folder-file" data-filename="${fileName.replace(/"/g,'&quot;')}"${chunkAttr}
               onclick="openFile(this,'${safe}','${ext}','${sz}','${safeProject}')">
         <span class="file-ext ext-${ext.toLowerCase()}">${ext}</span>
         <span class="file-name">${fileName}</span>
@@ -2341,11 +2154,6 @@ function addPanelFiles(files) {
     const icon = getFileIcon(f.name);
     const fileIdx = panelPendingFiles.length - 1;
     
-    // Update tag counts
-    const tag = getFileTag(f.name);
-    tagCounts[tag]++;
-    updateTagCounts();
-    
     // Determine badge color
     let badgeStyle = 'background:var(--bg3);color:var(--text2);';
     if (/dwg|dxf/i.test(ext)) badgeStyle = 'background:rgba(255,170,0,.2);color:var(--amber);';
@@ -2399,10 +2207,6 @@ function addPanelFiles(files) {
 
 function removePreviewFile(idx, event) {
   event.stopPropagation();
-  const tag = getFileTag(panelPendingFiles[idx].name);
-  tagCounts[tag] = Math.max(0, tagCounts[tag] - 1);
-  updateTagCounts();
-  
   panelPendingFiles.splice(idx, 1);
   rebuildPreviewGrid();
 }
@@ -2436,9 +2240,10 @@ function handleFileUpload(files) {
   // Switch to upload tab
   document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel-tab')[2].classList.add('active');
+  document.querySelectorAll('.panel-tab')[1].classList.add('active');
   document.getElementById('tab-upload').classList.add('active');
-  showNotif(`Đã thêm ${files.length} file — đặt tên tệp và nhấn Tạo tệp`, 'info');
+  refreshExistingProjectChips();
+  showNotif(`Đã thêm ${files.length} file — chọn dự án và nhấn Tạo tệp`, 'info');
 }
 
 // ── Chat ──
@@ -2755,6 +2560,35 @@ function switchTab(el, id) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById(id).classList.add('active');
+  if (id === 'tab-upload') refreshExistingProjectChips();
+}
+
+// ── Populate existing project chips in upload tab ──
+function refreshExistingProjectChips() {
+  const container = document.getElementById('existing-proj-chips');
+  if (!container) return;
+  const folders = document.querySelectorAll('.project-folder[data-project]');
+  if (folders.length === 0) {
+    container.innerHTML = '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">Chưa có dự án — tạo mới bên dưới</span>';
+    return;
+  }
+  container.innerHTML = '';
+  folders.forEach(folder => {
+    const name = folder.dataset.project;
+    const icon = folder.querySelector('.folder-icon')?.textContent || '📁';
+    const count = folder.querySelectorAll('.folder-file').length;
+    const chip = document.createElement('button');
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s;';
+    chip.innerHTML = `<span>${icon}</span><span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span><span style="background:var(--bg4);padding:1px 6px;border-radius:10px;font-size:9px;color:var(--text3)">${count}</span>`;
+    chip.title = name;
+    chip.addEventListener('click', () => {
+      document.getElementById('new-proj-name').value = name;
+      container.querySelectorAll('button').forEach(b => b.style.borderColor = 'var(--border2)');
+      chip.style.borderColor = 'var(--accent)';
+      chip.style.color = 'var(--accent)';
+    });
+    container.appendChild(chip);
+  });
 }
 function switchNav(el, id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
