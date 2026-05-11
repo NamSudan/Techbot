@@ -217,6 +217,48 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-family: var(--font-mono); display: flex; align-items: center; gap: 8px;
 }
 
+/* ── CHAT HISTORY ── */
+.history-list {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s ease;
+  padding: 0 0 2px;
+}
+.history-list.open { max-height: 260px; overflow-y: auto; }
+.history-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; cursor: pointer;
+  border-radius: 8px; margin: 1px 8px;
+  transition: background .12s; position: relative;
+}
+.history-item:hover { background: var(--bg3); }
+.history-item.active { background: var(--bg4); border: 1px solid rgba(0,212,255,.15); }
+.history-item-icon { font-size: 13px; flex-shrink: 0; width: 18px; text-align: center; opacity: .8; }
+.history-item-content { flex: 1; min-width: 0; }
+.history-item-title {
+  font-size: 11.5px; color: var(--text); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.history-item.active .history-item-title { color: var(--accent); }
+.history-item-meta {
+  font-size: 9.5px; color: var(--text3); font-family: var(--font-mono);
+  margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.history-item-delete {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 11px; padding: 2px 5px; border-radius: 4px;
+  opacity: 0; transition: opacity .15s, color .15s; flex-shrink: 0; line-height: 1;
+}
+.history-item:hover .history-item-delete { opacity: 1; }
+.history-item-delete:hover { color: var(--red); background: rgba(255,77,109,.1); }
+.history-empty {
+  padding: 6px 18px 8px; font-size: 11px; color: var(--text3);
+  font-family: var(--font-mono);
+}
+.history-section-divider {
+  margin: 6px 10px 0;
+  border: none; border-top: 1px solid var(--border);
+}
+
 /* ── MAIN ── */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
@@ -1587,6 +1629,16 @@ textarea::placeholder { color: var(--text3); }
       </div>
     </nav>
 
+    <!-- CHAT HISTORY SECTION -->
+    <div class="section-header" onclick="toggleHistorySection()" style="cursor:pointer;user-select:none">
+      <span class="section-label">LỊCH SỬ CHAT</span>
+      <button class="section-add-btn" title="Bắt đầu chat mới" onclick="startNewChat();event.stopPropagation()">+</button>
+    </div>
+    <div class="history-list open" id="chat-history-list">
+      <div class="history-empty">Chưa có cuộc trò chuyện nào</div>
+    </div>
+    <hr class="history-section-divider">
+
     <!-- PROJECT FILE TREE -->
     <div class="section-header">
       <span class="section-label">TỆP ĐÃ INDEX</span>
@@ -1617,9 +1669,9 @@ textarea::placeholder { color: var(--text3); }
         <span class="breadcrumb-item active" id="breadcrumb-state">Đang chat</span>
       </div>
       <div class="topbar-right">
-        <button class="topbar-btn" onclick="clearChat()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
-          <span class="btn-label">Xóa chat</span>
+        <button class="topbar-btn" onclick="startNewChat()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span class="btn-label">Chat mới</span>
         </button>
         <button class="topbar-btn primary" onclick="triggerFileInput()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -3037,6 +3089,7 @@ async function sendMessage() {
     } else {
       addMessage('bot', reply, data.engine || 'groq', null, null);
     }
+    saveChatSession();
     // Hiển thị banner cảnh báo nếu có ảnh chưa đọc được
     if (data.failedImages > 0 && !(localStorage.getItem('techbot_gemini_key') || '')) {
       const banner = document.createElement('div');
@@ -3093,6 +3146,180 @@ function clearChat() {
   msgCount = 0;
   document.getElementById('nav-chat-badge').textContent = '0';
   showNotif('Đã xóa lịch sử chat', 'info');
+}
+
+// ── Chat History ──
+let currentSessionId = null;
+
+function generateSessionId() {
+  return 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+function getChatSessions() {
+  try {
+    return JSON.parse(localStorage.getItem('techbot_chat_sessions') || '[]');
+  } catch { return []; }
+}
+
+function saveChatSession() {
+  if (conversationHistory.length === 0) return;
+  if (!currentSessionId) currentSessionId = generateSessionId();
+
+  const sessions = getChatSessions();
+  const firstUserMsg = conversationHistory.find(m => m.role === 'user');
+  const title = firstUserMsg
+    ? firstUserMsg.content.replace(/\[File đính kèm:[^\]]+\]/g, '').trim().slice(0, 60) || 'Cuộc trò chuyện'
+    : 'Cuộc trò chuyện';
+
+  const existing = sessions.findIndex(s => s.id === currentSessionId);
+  const session = {
+    id: currentSessionId,
+    title,
+    role: currentRole,
+    project: window.currentProject || null,
+    createdAt: existing >= 0 ? sessions[existing].createdAt : Date.now(),
+    updatedAt: Date.now(),
+    messages: conversationHistory.map(m => ({ ...m }))
+  };
+
+  if (existing >= 0) sessions[existing] = session;
+  else sessions.unshift(session);
+
+  if (sessions.length > 30) sessions.splice(30);
+
+  try {
+    localStorage.setItem('techbot_chat_sessions', JSON.stringify(sessions));
+  } catch {
+    // localStorage đầy — giữ 10 session gần nhất
+    sessions.splice(10);
+    try { localStorage.setItem('techbot_chat_sessions', JSON.stringify(sessions)); } catch {}
+  }
+  renderChatHistory();
+}
+
+function renderChatHistory() {
+  const container = document.getElementById('chat-history-list');
+  if (!container) return;
+  const sessions = getChatSessions();
+
+  if (sessions.length === 0) {
+    container.innerHTML = '<div class="history-empty">Chưa có cuộc trò chuyện nào</div>';
+    return;
+  }
+
+  const now = Date.now();
+  container.innerHTML = sessions.map(s => {
+    const diff = now - s.updatedAt;
+    let dateStr;
+    if (diff < 60000) dateStr = 'Vừa xong';
+    else if (diff < 3600000) dateStr = `${Math.floor(diff / 60000)} phút trước`;
+    else if (diff < 86400000) dateStr = `${Math.floor(diff / 3600000)} giờ trước`;
+    else dateStr = new Date(s.updatedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+    const isActive = s.id === currentSessionId;
+    const roleIcon = { trainer: '👨‍🏫', engineer: '⚙️', operator: '🔧' }[s.role] || '💬';
+    const sid = s.id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    return `<div class="history-item${isActive ? ' active' : ''}" onclick="loadChatSession('${sid}')">
+      <div class="history-item-icon">${roleIcon}</div>
+      <div class="history-item-content">
+        <div class="history-item-title">${escapeHtml(s.title)}</div>
+        <div class="history-item-meta">${dateStr}${s.project ? ` · ${escapeHtml(s.project)}` : ''}</div>
+      </div>
+      <button class="history-item-delete" onclick="deleteChatSession('${sid}',event)" title="Xóa">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function loadChatSession(id) {
+  const sessions = getChatSessions();
+  const session = sessions.find(s => s.id === id);
+  if (!session) return;
+
+  saveChatSession();
+
+  currentSessionId = id;
+  conversationHistory = session.messages.map(m => ({ ...m }));
+
+  // Restore role nếu khác
+  if (session.role && session.role !== currentRole) {
+    const tab = document.querySelector(`.role-tab[onclick*="${session.role}"]`);
+    if (tab) {
+      document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentRole = session.role;
+      document.getElementById('breadcrumb-role').textContent = roleNames[session.role];
+      updateSuggestions(session.role);
+    }
+  }
+
+  // Render lại messages
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  msgCount = 0;
+  document.getElementById('nav-chat-badge').textContent = '0';
+
+  const banner = document.createElement('div');
+  banner.style.cssText = 'text-align:center;padding:6px 16px 10px;font-size:10.5px;color:var(--text3);font-family:var(--font-mono);';
+  banner.textContent = `📖 Lịch sử · ${new Date(session.updatedAt).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}`;
+  msgs.appendChild(banner);
+
+  session.messages.forEach(m => {
+    if (m.role === 'user') {
+      addMessage('user', m.content, null, null, null);
+    } else {
+      addMessage('bot', m.content, m.engine || 'groq', null, null);
+    }
+  });
+
+  renderChatHistory();
+
+  // Chuyển sang panel chat
+  const chatNav = document.querySelector('.nav-item[onclick*="\'chat\'"]');
+  if (chatNav && !chatNav.classList.contains('active')) switchNav(chatNav, 'chat');
+
+  showNotif('Đã tải cuộc trò chuyện', 'success');
+}
+
+function deleteChatSession(id, event) {
+  event.stopPropagation();
+  const sessions = getChatSessions().filter(s => s.id !== id);
+  localStorage.setItem('techbot_chat_sessions', JSON.stringify(sessions));
+  if (currentSessionId === id) currentSessionId = null;
+  renderChatHistory();
+  showNotif('Đã xóa cuộc trò chuyện', 'info');
+}
+
+function startNewChat() {
+  saveChatSession();
+  currentSessionId = null;
+  conversationHistory = [];
+  msgCount = 0;
+
+  const sugCards = (roleSuggestions[currentRole] || roleSuggestions.engineer).map(s =>
+    `<div class="suggestion-card" onclick="useSuggestion(this)">
+      <div class="suggestion-card-icon">${s.icon}</div>
+      <div class="suggestion-card-text">${s.text}</div>
+    </div>`
+  ).join('');
+
+  document.getElementById('messages').innerHTML = `
+    <div class="chat-empty" id="chat-empty">
+      <div class="chat-empty-icon">⚙</div>
+      <p id="chat-empty-text">Chọn một gợi ý bên dưới hoặc nhập câu hỏi của bạn</p>
+      <div class="suggestions-grid" id="suggestions-grid">${sugCards}</div>
+    </div>`;
+  document.getElementById('nav-chat-badge').textContent = '0';
+  renderChatHistory();
+
+  const chatNav = document.querySelector('.nav-item[onclick*="\'chat\'"]');
+  if (chatNav && !chatNav.classList.contains('active')) switchNav(chatNav, 'chat');
+
+  showNotif('Chat mới đã sẵn sàng', 'info');
+}
+
+function toggleHistorySection() {
+  document.getElementById('chat-history-list').classList.toggle('open');
 }
 
 function switchTab(el, id) {
@@ -3261,6 +3488,7 @@ function checkResponsive() {
 window.addEventListener('resize', checkResponsive);
 checkResponsive();
 loadProjectsFromSupabase();
+renderChatHistory();
 
 function openImagePreview(url) {
   const overlay = document.getElementById('img-preview-overlay');
