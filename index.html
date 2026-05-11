@@ -729,6 +729,32 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.cite-thumb {
+  width: 56px; height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(0,212,255,0.2);
+  flex-shrink: 0;
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+}
+.cite-thumb:hover { opacity: 0.85; }
+.msg-ai-fn.has-image { align-items: center; gap: 8px; }
+#img-preview-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85); z-index: 9999;
+  align-items: center; justify-content: center; cursor: zoom-out;
+}
+#img-preview-overlay.open { display: flex; }
+#img-preview-overlay img {
+  max-width: 90vw; max-height: 88vh;
+  border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+#img-preview-close {
+  position: absolute; top: 16px; right: 20px;
+  background: none; border: none; color: #fff;
+  font-size: 28px; cursor: pointer; line-height: 1;
+}
 .export-wrap { position: relative; display: inline-block; }
 .export-menu {
   display: none;
@@ -2654,7 +2680,11 @@ function addMessageWithActions(content, citations, engine, time, opts) {
       const icon = getFileIcon(fn || 'doc');
       const label = pg ? `${escapeHtml(fn)} — ${escapeHtml(pg)}` : escapeHtml(fn);
       const enc = encodeURIComponent(fn);
-      return `<button type="button" class="msg-ai-fn" id="cite-fn-${num}" data-cite-file="${enc}" onclick="highlightFileFromCiteBtn(this)">
+      const imgThumb = (c && c.image_url)
+        ? `<img src="${escapeHtml(c.image_url)}" class="cite-thumb" alt="Hình ${num}" onclick="openImagePreview('${escapeHtml(c.image_url)}');event.stopPropagation()">`
+        : '';
+      return `<button type="button" class="msg-ai-fn ${c && c.image_url ? 'has-image' : ''}" id="cite-fn-${num}" data-cite-file="${enc}" onclick="highlightFileFromCiteBtn(this)">
+        ${imgThumb}
         <span class="msg-ai-fn-icon">${icon}</span>
         <span><span class="msg-ai-fn-target">[${num}]</span> ${label}</span>
       </button>`;
@@ -2858,6 +2888,20 @@ function checkResponsive() {
 window.addEventListener('resize', checkResponsive);
 checkResponsive();
 loadProjectsFromSupabase();
+
+function openImagePreview(url) {
+  const overlay = document.getElementById('img-preview-overlay');
+  document.getElementById('img-preview-img').src = url;
+  overlay.classList.add('open');
+}
+function closeImagePreview() {
+  document.getElementById('img-preview-overlay').classList.remove('open');
+}
 </script>
+
+<div id="img-preview-overlay" onclick="closeImagePreview()">
+  <button id="img-preview-close" onclick="closeImagePreview()" aria-label="Đóng">✕</button>
+  <img id="img-preview-img" src="" alt="Xem ảnh">
+</div>
 </body>
 </html>
