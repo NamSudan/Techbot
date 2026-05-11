@@ -2,7 +2,7 @@
  * DELETE /api/delete?project=xxx[&file=yyy]
  * Deletes all chunks for a project, or a specific file within a project.
  */
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
