@@ -356,8 +356,9 @@ export default async function handler(req, res) {
       await saveChunks(rows);
     }
 
-    const imageChunks = rows.filter(r => r.chunk_type === 'image').length;
-    const textChunks  = rows.filter(r => r.chunk_type === 'text').length;
+    const imageChunks  = rows.filter(r => r.chunk_type === 'image').length;
+    const textChunks   = rows.filter(r => r.chunk_type === 'text').length;
+    const failedImages = rows.filter(r => r.chunk_type === 'image' && r.chunk_text?.includes('Không đọc được hình')).length;
     const recommendation = recommendModel(ext, textChunks, imageChunks);
 
     return res.status(200).json({
@@ -365,6 +366,7 @@ export default async function handler(req, res) {
       fileName,
       chunks: rows.length,
       method: isImage ? 'vision' : 'text',
+      failedImages,
       recommendation
     });
 

@@ -2176,11 +2176,23 @@ function openFile(el, name, type, size, project) {
       const color = isGemini ? 'var(--purple)' : 'var(--accent)';
       const badge = isGemini ? '👁 Gemini Vision' : '⚡ Groq / Llama';
       const reqTag = rec.required ? '<span style="color:var(--red);font-size:10px"> · Bắt buộc</span>' : '';
+      const hasKey = !!(localStorage.getItem('techbot_gemini_key') || '');
+      const failedWarn = (rec.failedImages > 0 && !hasKey) ? `
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.3);border-radius:8px;border-left:3px solid var(--amber)">
+          <div style="font-size:12px;font-weight:600;color:var(--amber)">⚠ ${rec.failedImages} hình ảnh chưa đọc được</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px;line-height:1.5">
+            Cần <b>Gemini API key</b> để phân tích hình ảnh trong tài liệu.<br>
+            <span style="color:var(--accent);cursor:pointer;text-decoration:underline"
+              onclick="document.querySelector('.nav-item:nth-child(3)').click()">
+              → Vào Cài đặt để nhập key (miễn phí)
+            </span>
+          </div>
+        </div>` : '';
       return `<div style="margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${color}">
         <div style="font-size:10px;color:var(--text3);margin-bottom:4px">MODEL GỢI Ý</div>
         <div style="font-size:12px;font-weight:600;color:${color}">${badge}${reqTag}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:3px">${rec.reason}</div>
-      </div>`;
+      </div>${failedWarn}`;
     })()}`;
 
   // Switch to info tab
@@ -2253,10 +2265,15 @@ async function createProjectFromPanel() {
       if (!res.ok || result.error) {
         showNotif(`Lỗi index "${file.name}": ${result.error || res.status}`, 'error');
         console.error('Ingest error:', file.name, result);
-      } else if (result.recommendation) {
-        // Lưu recommendation để hiển thị trong panel thông tin
+      } else {
         if (!window._fileRecommendations) window._fileRecommendations = {};
-        window._fileRecommendations[file.name] = result.recommendation;
+        window._fileRecommendations[file.name] = {
+          ...result.recommendation,
+          failedImages: result.failedImages || 0
+        };
+        if (result.failedImages > 0) {
+          showNotif(`⚠ ${result.failedImages} hình ảnh chưa đọc được — Thêm Gemini key trong Cài đặt`, 'warning');
+        }
       }
     } catch(e) {
       showNotif(`Lỗi index "${file.name}": ${e.message}`, 'error');
@@ -3019,6 +3036,16 @@ async function sendMessage() {
       addMessageWithActions(reply, citations, data.engine || 'groq', null, { isHtml: false, citeCount: citations.length });
     } else {
       addMessage('bot', reply, data.engine || 'groq', null, null);
+    }
+    // Hiển thị banner cảnh báo nếu có ảnh chưa đọc được
+    if (data.failedImages > 0 && !(localStorage.getItem('techbot_gemini_key') || '')) {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'margin:4px 16px 8px;padding:10px 14px;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.35);border-radius:8px;font-size:12px;display:flex;align-items:center;gap:10px;';
+      banner.innerHTML = `<span style="font-size:16px">⚠️</span>
+        <span style="color:var(--text2);flex:1"><b style="color:var(--amber)">${data.failedImages} hình ảnh trong tài liệu chưa được đọc</b> — cần Gemini API key để phân tích ảnh.</span>
+        <span style="color:var(--accent);cursor:pointer;white-space:nowrap;text-decoration:underline;font-size:11px"
+          onclick="document.querySelector('[onclick*=settings]').click()">Cài đặt →</span>`;
+      document.getElementById('messages').appendChild(banner);
     }
   } catch (err) {
     await hideThinkingIndicator();
