@@ -1585,7 +1585,17 @@ let currentRole = 'engineer';
 
 let thinkingIndicatorTimeouts = [];
 
-function showThinkingIndicator() {
+function detectThinkingMode(text, hasFile, hasProject) {
+  const GREETINGS = /^(xin chào|chào|hello|hi|hey|ok|oke|được|cảm ơn|thanks|thank you|tốt|👍|😊|có|không|ừ|uhm|vâng|dạ)\b/i;
+  const isShort = text.trim().length < 25;
+  const isGreeting = GREETINGS.test(text.trim());
+  if (hasFile) return 'file';
+  if (isShort && isGreeting) return 'chat';
+  if (hasProject || totalFileCount > 0) return 'rag';
+  return 'chat';
+}
+
+function showThinkingIndicator(mode = 'chat') {
   thinkingIndicatorTimeouts.forEach(clearTimeout);
   thinkingIndicatorTimeouts = [];
   document.getElementById('thinking-indicator-msg')?.remove();
@@ -1596,31 +1606,38 @@ function showThinkingIndicator() {
   const wrap = document.createElement('div');
   wrap.className = 'msg bot thinking-indicator-wrap';
   wrap.id = 'thinking-indicator-msg';
-  wrap.innerHTML = `
-    <div class="avatar">⚙</div>
-    <div class="thinking-indicator">
-      <div class="thinking-row" data-thinking-step="0">
-        <span class="thinking-label">Đang phân tích câu hỏi...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-      <div class="thinking-row" data-thinking-step="1">
-        <span class="thinking-label">Tìm kiếm tài liệu liên quan...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-      <div class="thinking-row" data-thinking-step="2">
-        <span class="thinking-label">Đọc nội dung phù hợp...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-      <div class="thinking-row" data-thinking-step="3">
-        <span class="thinking-label">Đang tổng hợp câu trả lời...</span>
-        <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
-      </div>
-    </div>`;
+
+  const steps = {
+    chat: [
+      'Đang trả lời...'
+    ],
+    file: [
+      'Đọc file đính kèm...',
+      'Phân tích nội dung...',
+      'Đang soạn câu trả lời...'
+    ],
+    rag: [
+      'Đang phân tích câu hỏi...',
+      'Tìm kiếm tài liệu liên quan...',
+      'Đọc nội dung phù hợp...',
+      'Đang tổng hợp câu trả lời...'
+    ]
+  };
+
+  const stepLabels = steps[mode] || steps.chat;
+  const stepsHtml = stepLabels.map((label, i) => `
+    <div class="thinking-row" data-thinking-step="${i}">
+      <span class="thinking-label">${label}</span>
+      <span class="thinking-marker"><span class="thinking-dot"></span><span class="thinking-check">✓</span></span>
+    </div>`).join('');
+
+  wrap.innerHTML = `<div class="avatar">⚙</div><div class="thinking-indicator">${stepsHtml}</div>`;
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
 
   const rows = wrap.querySelectorAll('.thinking-row');
-  const delays = [0, 600, 1400, 2000];
+  const baseDelay = mode === 'chat' ? 0 : 600;
+  const delays = stepLabels.map((_, i) => i * baseDelay);
 
   function setStepActive(index) {
     rows.forEach((row, i) => {
@@ -2473,7 +2490,8 @@ async function sendMessage() {
   addMessage('user', text || '(Đính kèm file)', null, null, fileName);
   ta.value = ''; ta.style.height = '';
   document.getElementById('upload-previews').innerHTML = '';
-  showThinkingIndicator();
+  const thinkingMode = detectThinkingMode(text, !!fileObj, !!window.currentProject);
+  showThinkingIndicator(thinkingMode);
   document.getElementById('send-btn').disabled = true;
 
   try {
