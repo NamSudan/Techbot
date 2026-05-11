@@ -124,7 +124,7 @@ async function parseDocx(buffer, hasGemini, fileName) {
 
   try {
     const r = await mammoth.extractRawText({ buffer });
-    textContent = r.value.slice(0, 20000);
+    textContent = r.value;
   } catch (e) {
     textContent = `[Lỗi đọc text DOCX: ${e.message}]`;
   }
@@ -132,9 +132,7 @@ async function parseDocx(buffer, hasGemini, fileName) {
   // Fallback: nếu mammoth trả về ít text, đọc XML trực tiếp để lấy nội dung text boxes
   if (textContent.length < 100) {
     const xmlText = await extractDocxXmlText(buffer);
-    if (xmlText.length > textContent.length) {
-      textContent = xmlText.slice(0, 20000);
-    }
+    if (xmlText.length > textContent.length) textContent = xmlText;
   }
 
   if (hasGemini) {
@@ -184,7 +182,7 @@ async function parseXlsx(buffer, hasGemini, fileName) {
       const csv = XLSX.utils.sheet_to_csv(ws, { blankrows: false });
       if (csv.trim()) lines.push(`=== Sheet: ${sheetName} ===\n${csv}`);
     });
-    textContent = lines.join('\n\n').slice(0, 12000);
+    textContent = lines.join('\n\n');
   } catch (e) {
     textContent = `[Lỗi đọc XLSX: ${e.message}]`;
   }
@@ -231,7 +229,7 @@ async function extractText(fileName, fileBase64, mimeType) {
   let imageObjects = [];
 
   if (['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
-    extractedText = buffer.toString('utf-8').slice(0, 15000);
+    extractedText = buffer.toString('utf-8');
   } else if (['docx', 'doc'].includes(ext)) {
     const r = await parseDocx(buffer, hasGemini, fileName);
     extractedText = r.extractedText;

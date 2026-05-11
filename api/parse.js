@@ -148,7 +148,7 @@ async function parseDocx(buffer, fileName, hasGemini) {
   // Bước 1: Trích xuất text
   try {
     const r = await mammoth.extractRawText({ buffer });
-    textContent = r.value.slice(0, 20000);
+    textContent = r.value.slice(0, 50000);
   } catch (e) {
     textContent = `[Lỗi đọc text DOCX: ${e.message}]`;
   }
@@ -157,7 +157,7 @@ async function parseDocx(buffer, fileName, hasGemini) {
   if (textContent.length < 100) {
     const xmlText = await extractDocxXmlText(buffer);
     if (xmlText.length > textContent.length) {
-      textContent = xmlText.slice(0, 20000);
+      textContent = xmlText.slice(0, 50000);
       method = 'xml-fallback';
     }
   }
