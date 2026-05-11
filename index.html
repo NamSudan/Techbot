@@ -1297,10 +1297,105 @@ textarea::placeholder { color: var(--text3); }
 .modal-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 .modal-btn.primary:hover { background: var(--accent3); }
 
+/* ── RESPONSIVE — Tablet + Mobile (≤ 900px) ── */
 @media (max-width: 900px) {
   .right-panel { display: none; }
-  .sidebar { position: absolute; z-index: 100; transform: translateX(-100%); }
-  .sidebar.open { transform: none; }
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100%;
+    z-index: 100;
+    transform: translateX(-100%);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* Sidebar backdrop */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .sidebar-backdrop.show { display: block; }
+
+  /* Hide breadcrumb to save topbar space */
+  .breadcrumb { display: none; }
+
+  /* Wider bubbles */
+  .bubble { max-width: 85%; }
+  .thinking-indicator { max-width: 85%; }
+}
+
+/* ── RESPONSIVE — Tablet (≤ 768px) ── */
+@media (max-width: 768px) {
+  /* Role tabs: horizontal scroll, no descriptions */
+  .role-tabs-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .role-tabs-wrapper::-webkit-scrollbar { display: none; }
+  .role-tabs { flex-wrap: nowrap; min-width: max-content; }
+  .role-tab-desc { display: none; }
+  .role-tab { padding: 8px 14px 10px; }
+  .role-tab-icon { width: 28px; height: 28px; }
+
+  /* Messages padding */
+  .messages { padding: 16px; }
+
+  /* Single column suggestion grid */
+  .suggestions-grid { grid-template-columns: 1fr; max-width: 400px; }
+
+  /* Upload grid: single column */
+  .upload-grid { grid-template-columns: 1fr; }
+
+  /* Input area */
+  .input-area { padding: 10px 14px 14px; }
+  .input-hint { gap: 10px; }
+
+  /* Modal */
+  .modal { width: calc(100vw - 32px); }
+}
+
+/* ── RESPONSIVE — Mobile phone (≤ 480px) ── */
+@media (max-width: 480px) {
+  /* Topbar */
+  .topbar { padding: 0 10px; gap: 6px; }
+  .topbar-title { font-size: 13px; }
+  .topbar-right { gap: 4px; }
+  .btn-label { display: none; }
+  .topbar-btn { padding: 6px 9px !important; }
+
+  /* Role tabs: compact */
+  .role-tab { padding: 6px 10px 8px; gap: 6px; }
+  .role-tab-name { font-size: 11px; }
+  .role-tab-icon { width: 24px; height: 24px; border-radius: 7px; font-size: 13px; }
+
+  /* Wider bubbles */
+  .bubble { max-width: 92%; }
+  .thinking-indicator { max-width: 92%; }
+
+  /* Messages */
+  .messages { padding: 10px 12px; }
+  .chat-empty { padding: 24px 14px; gap: 14px; }
+  .suggestions-grid { gap: 8px; max-width: 100%; }
+  .suggestion-card { padding: 12px; }
+  .suggestion-card-text { font-size: 12px; }
+
+  /* Input */
+  .input-area { padding: 8px 10px 10px; }
+  .input-hint { display: none; }
+  .input-box { padding: 8px 10px; }
+
+  /* Modal: bottom sheet */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { width: 100%; border-radius: 20px 20px 0 0; border-bottom: none; }
+
+  /* Notification: full width */
+  .notif { left: 10px; right: 10px; min-width: unset; top: 10px; }
 }
 
 /* ── AI Thinking indicator (Gợi ý 2) ── */
@@ -1453,10 +1548,13 @@ textarea::placeholder { color: var(--text3); }
     </div>
   </aside>
 
+  <!-- Sidebar backdrop for mobile -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
   <!-- ── MAIN ── -->
   <main class="main">
     <div class="topbar">
-      <button class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;padding:6px" id="menu-btn">☰</button>
+      <button class="topbar-btn" onclick="toggleSidebar()" style="display:none;padding:6px" id="menu-btn">☰</button>
       <span class="topbar-title">TechBot</span>
       <div class="breadcrumb" id="breadcrumb">
         <span class="breadcrumb-item" id="breadcrumb-role">Kỹ sư</span>
@@ -1468,11 +1566,11 @@ textarea::placeholder { color: var(--text3); }
       <div class="topbar-right">
         <button class="topbar-btn" onclick="clearChat()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
-          Xóa chat
+          <span class="btn-label">Xóa chat</span>
         </button>
         <button class="topbar-btn primary" onclick="triggerFileInput()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload tệp
+          <span class="btn-label">Upload tệp</span>
         </button>
       </div>
     </div>
@@ -2882,8 +2980,20 @@ function showNotif(msg, type='info') {
   document.body.appendChild(n);
   setTimeout(() => n.remove(), 3000);
 }
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const isOpen = sidebar.classList.toggle('open');
+  backdrop.classList.toggle('show', isOpen);
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
 function checkResponsive() {
-  document.getElementById('menu-btn').style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+  const isMobile = window.innerWidth <= 900;
+  document.getElementById('menu-btn').style.display = isMobile ? 'flex' : 'none';
+  if (!isMobile) closeSidebar();
 }
 window.addEventListener('resize', checkResponsive);
 checkResponsive();
