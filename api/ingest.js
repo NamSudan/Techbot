@@ -96,10 +96,10 @@ function extractPdfTextRaw(buffer) {
   }
 }
 
-async function parseDocx(buffer, hasGemini) {
+async function parseDocx(buffer, hasGemini, fileName) {
   const mammoth = (await import('mammoth')).default;
   let textContent = '';
-  let imageDescs = [];
+  let imageObjects = []; // { description, imageUrl, index }
 
   try {
     const r = await mammoth.extractRawText({ buffer });
@@ -125,10 +125,13 @@ async function parseDocx(buffer, hasGemini) {
         const imgExt = imgFiles[i].split('.').pop().toLowerCase();
         const imgMime = `image/${imgExt === 'jpg' ? 'jpeg' : imgExt}`;
         try {
-          const desc = await callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE);
-          imageDescs.push(desc);
+          const [desc, imageUrl] = await Promise.all([
+            callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE),
+            uploadImageToSupabase(imgB64, fileName, 1, i)
+          ]);
+          imageObjects.push({ description: desc, imageUrl, index: i });
         } catch {
-          imageDescs.push(`[Không đọc được hình ${i + 1}]`);
+          imageObjects.push({ description: `[Không đọc được hình ${i + 1}]`, imageUrl: null, index: i });
         }
       }
     } catch (e) {
@@ -136,13 +139,13 @@ async function parseDocx(buffer, hasGemini) {
     }
   }
 
-  return { extractedText: textContent, imageDescriptions: imageDescs };
+  return { extractedText: textContent, imageObjects };
 }
 
-async function parseXlsx(buffer, hasGemini) {
+async function parseXlsx(buffer, hasGemini, fileName) {
   const XLSX = await import('xlsx');
   let textContent = '';
-  let imageDescs = [];
+  let imageObjects = [];
 
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -173,10 +176,13 @@ async function parseXlsx(buffer, hasGemini) {
         const imgExt = imgFiles[i].split('.').pop().toLowerCase();
         const imgMime = `image/${imgExt === 'jpg' ? 'jpeg' : imgExt}`;
         try {
-          const desc = await callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE);
-          imageDescs.push(desc);
+          const [desc, imageUrl] = await Promise.all([
+            callGeminiVision(imgB64, imgMime, VISION_PROMPT_IMAGE),
+            uploadImageToSupabase(imgB64, fileName, 1, i)
+          ]);
+          imageObjects.push({ description: desc, imageUrl, index: i });
         } catch {
-          imageDescs.push(`[Không đọc được hình ${i + 1}]`);
+          imageObjects.push({ description: `[Không đọc được hình ${i + 1}]`, imageUrl: null, index: i });
         }
       }
     } catch (e) {
@@ -184,7 +190,7 @@ async function parseXlsx(buffer, hasGemini) {
     }
   }
 
-  return { extractedText: textContent, imageDescriptions: imageDescs };
+  return { extractedText: textContent, imageObjects };
 }
 
 async function extractText(fileName, fileBase64, mimeType) {
@@ -193,18 +199,18 @@ async function extractText(fileName, fileBase64, mimeType) {
   const hasGemini = !!process.env.GEMINI_API_KEY;
 
   let extractedText = '';
-  let imageDescriptions = [];
+  let imageObjects = [];
 
   if (['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
     extractedText = buffer.toString('utf-8').slice(0, 15000);
   } else if (['docx', 'doc'].includes(ext)) {
-    const r = await parseDocx(buffer, hasGemini);
+    const r = await parseDocx(buffer, hasGemini, fileName);
     extractedText = r.extractedText;
-    imageDescriptions = r.imageDescriptions;
+    imageObjects = r.imageObjects;
   } else if (['xlsx', 'xls'].includes(ext)) {
-    const r = await parseXlsx(buffer, hasGemini);
+    const r = await parseXlsx(buffer, hasGemini, fileName);
     extractedText = r.extractedText;
-    imageDescriptions = r.imageDescriptions;
+    imageObjects = r.imageObjects;
   } else if (ext === 'pdf') {
     if (hasGemini) {
       extractedText = await callGeminiVision(fileBase64, 'application/pdf', VISION_PROMPT_PDF);
@@ -215,14 +221,7 @@ async function extractText(fileName, fileBase64, mimeType) {
     extractedText = `[Loại .${ext} chưa hỗ trợ]`;
   }
 
-  if (imageDescriptions.length > 0) {
-    const imgSection = imageDescriptions
-      .map((d, i) => `\n[Hình ${i + 1} trong file:\n${d}]`)
-      .join('\n');
-    extractedText += '\n\n--- HÌNH ẢNH TRÍCH XUẤT TỪ FILE ---' + imgSection;
-  }
-
-  return extractedText;
+  return { extractedText, imageObjects };
 }
 
 export default async function handler(req, res) {
@@ -255,7 +254,7 @@ export default async function handler(req, res) {
         embedding
       });
     } else {
-      const extractedText = await extractText(fileName, fileBase64, mimeType);
+      const { extractedText, imageObjects } = await extractText(fileName, fileBase64, mimeType);
 
       if (extractedText.trim()) {
         const chunks = chunkText(extractedText);
@@ -270,6 +269,20 @@ export default async function handler(req, res) {
             embedding
           });
         }
+      }
+
+      // Tạo chunk riêng cho mỗi ảnh nhúng — có image_url để hiển thị trong chat
+      for (const img of imageObjects) {
+        if (!img.description) continue;
+        const embedding = await createEmbedding(img.description);
+        rows.push({
+          file_name: fileName, project, role,
+          page: null, chunk_index: img.index,
+          chunk_type: 'image',
+          chunk_text: img.description,
+          image_url: img.imageUrl,
+          embedding
+        });
       }
     }
 
