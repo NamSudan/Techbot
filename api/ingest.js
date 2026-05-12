@@ -143,10 +143,10 @@ function parseDocStructure(docXml, relMap) {
   for (const paraMatch of docXml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
     const paraXml = paraMatch[0];
 
-    // Detect heading style
-    const styleM   = paraXml.match(/<w:pStyle w:val="([^"]+)"/);
-    const style    = styleM ? styleM[1] : '';
-    const isHeading = /^[Hh]eading\d+$/i.test(style) || style === 'Title';
+    // Detect heading style (explicit Word heading styles)
+    const styleM    = paraXml.match(/<w:pStyle w:val="([^"]+)"/);
+    const style     = styleM ? styleM[1] : '';
+    const isWordHeading = /^[Hh]eading\d+$/i.test(style) || style === 'Title';
 
     // Detect list paragraph (numbered steps)
     const isList   = /ListParagraph|List/i.test(style);
@@ -154,6 +154,17 @@ function parseDocStructure(docXml, relMap) {
     // Concatenate all text runs
     const text = [...paraXml.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)]
       .map(m => m[1]).join('').trim();
+
+    // Heuristic heading: bold + ALL CAPS + short (for docs without Heading styles)
+    // e.g. "TRƯỚC KHI VẬN HÀNH", "QUY TRÌNH NHÓM LÒ"
+    const isBold = /<w:b\b/.test(paraXml) && !/<w:b w:val="0"/.test(paraXml);
+    const isAllCaps = text.length > 3 && text.length < 100
+      && text === text.toUpperCase()
+      && /[\p{L}]/u.test(text)          // must have letters
+      && !/^[\d\s\-–—.,:;]+$/.test(text); // not just numbers/punctuation
+    const isPseudoHeading = isBold && isAllCaps;
+
+    const isHeading = isWordHeading || isPseudoHeading;
 
     // Detect embedded image references (r:embed)
     const imgRefs = [...paraXml.matchAll(/r:embed="(rId[^"]+)"/g)].map(m => m[1]);
