@@ -1845,6 +1845,28 @@ textarea::placeholder { color: var(--text3); }
             Đang tải...
           </div>
         </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Re-embed tài liệu — text-embedding-004</div>
+          <div class="settings-info-box" style="margin-bottom:12px">
+            Sau khi nâng cấp model embedding từ <code style="color:var(--amber)">gemini-embedding-001</code>
+            lên <code style="color:var(--green)">text-embedding-004</code>, cần re-embed lại toàn bộ
+            tài liệu để tìm kiếm hoạt động đúng.<br>
+            <b>Yêu cầu Gemini API key.</b> Quá trình chạy theo batch, không ảnh hưởng đến chat.
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button class="settings-key-btn" id="reembed-btn" onclick="startReembed()" style="padding:8px 18px;font-size:12px">
+              ↺ Bắt đầu Re-embed
+            </button>
+            <span id="reembed-status" style="font-size:12px;color:var(--text2);font-family:var(--font-mono)"></span>
+          </div>
+          <div id="reembed-progress-wrap" style="display:none;margin-top:10px">
+            <div style="background:var(--bg);border-radius:6px;height:6px;overflow:hidden">
+              <div id="reembed-progress-fill" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div>
+            </div>
+            <div id="reembed-progress-text" style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:5px"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ── RIGHT PANEL ── -->
@@ -3527,6 +3549,87 @@ function updateSettingsStatusDisplay() {
     <span style="color:var(--text3);font-size:11px">Key được lưu trên trình duyệt của bạn, không gửi đến server ngoài API call.</span>
   `;
 }
+// ── Re-embed (Phase 2) ──
+async function startReembed() {
+  const keys = getUserKeys();
+  if (!keys.gemini) {
+    showNotif('Cần Gemini API key để re-embed — vào Cài đặt nhập key trước', 'error');
+    return;
+  }
+
+  const btn        = document.getElementById('reembed-btn');
+  const statusEl   = document.getElementById('reembed-status');
+  const wrapEl     = document.getElementById('reembed-progress-wrap');
+  const fillEl     = document.getElementById('reembed-progress-fill');
+  const textEl     = document.getElementById('reembed-progress-text');
+
+  btn.disabled = true;
+  btn.textContent = '⟳ Đang chạy...';
+  wrapEl.style.display = 'block';
+
+  let offset = 0;
+  let totalProcessed = 0;
+  let totalFailed = 0;
+  let batchNum = 0;
+  const BATCH_SIZE = 20;
+
+  const setStatus = (msg, color = 'var(--text2)') => {
+    statusEl.style.color = color;
+    statusEl.textContent = msg;
+  };
+
+  try {
+    while (true) {
+      batchNum++;
+      setStatus(`Batch ${batchNum} — đang xử lý offset ${offset}...`);
+
+      const res = await fetch('/api/reembed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offset, batchSize: BATCH_SIZE, userKeys: keys })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      totalProcessed += data.processed || 0;
+      totalFailed    += data.failed    || 0;
+
+      textEl.textContent = `Đã xử lý: ${totalProcessed} docs${totalFailed ? ` | Lỗi: ${totalFailed}` : ''}`;
+
+      // Animate progress bar (indeterminate style khi không biết tổng)
+      fillEl.style.width = Math.min(10 + batchNum * 8, 90) + '%';
+
+      if (data.rateLimited) {
+        setStatus('⚠ Rate limit — chờ 30s rồi tiếp...', 'var(--amber)');
+        await new Promise(r => setTimeout(r, 30000));
+        offset = data.nextOffset;
+        continue;
+      }
+
+      if (data.done) break;
+      offset = data.nextOffset;
+
+      // Nghỉ 1s giữa các batch để Gemini không bị rate limit
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    fillEl.style.width = '100%';
+    setStatus(`✓ Hoàn thành! ${totalProcessed} docs đã re-embed${totalFailed ? ` (${totalFailed} lỗi)` : ''}`, 'var(--green)');
+    showNotif(`✓ Re-embed xong: ${totalProcessed} documents với text-embedding-004`, 'success');
+
+  } catch (e) {
+    setStatus(`✗ Lỗi: ${e.message}`, 'var(--red)');
+    showNotif(`Re-embed thất bại: ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↺ Bắt đầu Re-embed';
+  }
+}
+
 function showNotif(msg, type='info') {
   const icons = {success:'✓', info:'ℹ', warning:'⚠', error:'✗'};
   const n = document.createElement('div');
