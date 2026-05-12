@@ -20,10 +20,17 @@ Hãy:
 
 Lĩnh vực chuyên môn: xây dựng, cơ khí, điện, kết cấu, vật tư công trình.
 
+QUY TẮC HIỂN THỊ HÌNH ẢNH:
+- Khi câu trả lời cần hình ảnh minh hoạ, chèn [IMG:N] vào đúng vị trí trong text (N là số của citation HÌNH ẢNH)
+- Chỉ dùng [IMG:N] khi thực sự cần — không dùng nếu câu hỏi chỉ cần text
+- [IMG:N][IMG:M] viết liền nhau = hiển thị 2 ảnh song song để so sánh
+- Ví dụ đúng: "Bước 3: Nạp liệu vào lò [3]\n[IMG:3]\nBước 4: Kiểm tra nhiệt độ [4]\n[IMG:4]"
+- Ví dụ sai: chèn [IMG:N] vào mọi câu dù không cần thiết
+
 QUY TẮC TRỢ LÝ CHỦ ĐỘNG:
-- Nếu câu hỏi ngắn/chung chung (ví dụ chỉ là tên thiết bị), hãy tóm tắt nhanh những gì tìm được rồi hỏi lại: "Bạn muốn tìm hiểu thêm về khía cạnh nào?" thay vì đổ toàn bộ thông tin.
-- Nếu tài liệu tham khảo đến từ nhiều file khác nhau, hãy chủ động đề cập: "Tôi tìm thấy thông tin từ X file liên quan..."
-- Cuối mỗi câu trả lời có dùng tài liệu, LUÔN thêm dòng gợi ý theo định dạng CHÍNH XÁC sau (không thay đổi format):
+- Nếu câu hỏi ngắn/chung chung, tóm tắt nhanh rồi hỏi lại: "Bạn muốn tìm hiểu thêm về khía cạnh nào?"
+- Nếu tài liệu từ nhiều file, chủ động đề cập: "Tôi tìm thấy thông tin từ X file liên quan..."
+- Cuối mỗi câu trả lời có dùng tài liệu, LUÔN thêm dòng gợi ý CHÍNH XÁC format sau:
 💡 GỢI Ý: [câu gợi ý 1] | [câu gợi ý 2] | [câu gợi ý 3]
   (tối đa 3 gợi ý, ngắn gọn dưới 8 từ mỗi cái, liên quan trực tiếp đến nội dung vừa trả lời)
 - Với tin nhắn chào hỏi hoặc không liên quan tài liệu: KHÔNG thêm dòng 💡 GỢI Ý.`;
@@ -50,7 +57,9 @@ async function getRagContext(userMessage, project, geminiKey) {
       page: c.page,
       type: c.chunk_type,
       text: c.chunk_text,
-      image_url: c.image_url || null
+      image_url: c.image_url || null,
+      section_title: c.section_title || null,
+      surrounding_text: c.surrounding_text || null
     }));
 
     const failedImages = citations.filter(c =>
@@ -62,11 +71,22 @@ async function getRagContext(userMessage, project, geminiKey) {
       ? `Tìm thấy thông tin từ ${uniqueFiles.length} file: ${uniqueFiles.join(', ')}.`
       : `Tìm thấy thông tin từ file: ${uniqueFiles[0]}.`;
 
-    let contextBlock = `\n\n=== TÀI LIỆU THAM KHẢO ===\n${filesSummary}\n\n${
-      citations.map(c =>
-        `[${c.num}] ${c.file}${c.page ? ` – trang ${c.page}` : ''}${c.type === 'image' ? ' [HÌNH ẢNH]' : ''}\n${c.text}`
-      ).join('\n\n')
-    }\n=== HẾT TÀI LIỆU ===\nTrích dẫn [số] sau câu sử dụng thông tin từ nguồn đó.`;
+    // Build rich context block with section + image metadata
+    const citationLines = citations.map(c => {
+      const sectionTag = c.section_title ? ` [Mục: ${c.section_title}]` : '';
+      const pageTag    = c.page ? ` – trang ${c.page}` : '';
+      const typeTag    = c.type === 'image' ? ' [HÌNH ẢNH — dùng [IMG:N] nếu cần hiển thị]' : '';
+      const contextNote = c.type === 'image' && c.surrounding_text
+        ? `\nNgữ cảnh trong tài liệu: "${c.surrounding_text}"`
+        : '';
+      return `[${c.num}] ${c.file}${pageTag}${sectionTag}${typeTag}\n${c.text}${contextNote}`;
+    }).join('\n\n');
+
+    let contextBlock = `\n\n=== TÀI LIỆU THAM KHẢO ===\n${filesSummary}\n\n${citationLines}\n=== HẾT TÀI LIỆU ===
+Hướng dẫn trả lời:
+- Trích dẫn [số] sau câu dùng thông tin từ nguồn đó
+- Nếu câu hỏi yêu cầu hình ảnh minh hoạ, chèn [IMG:N] vào đúng vị trí trong câu trả lời (chỉ với citation là HÌNH ẢNH)
+- [IMG:N][IMG:M] liền nhau = hiển thị song song để so sánh`;
 
     if (failedImages > 0 && !geminiKey) {
       contextBlock += `\n\n[LƯU Ý HỆ THỐNG: ${failedImages} hình ảnh trong tài liệu chưa được đọc do thiếu Gemini API key. Hãy thông báo cho user rằng để xem nội dung hình ảnh, họ cần nhập Gemini API key vào mục Cài đặt (góc trái sidebar). Key miễn phí tại aistudio.google.com]`;

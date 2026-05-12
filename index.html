@@ -786,6 +786,34 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .cite-thumb:hover { opacity: 0.85; }
 .msg-ai-fn.has-image { align-items: center; gap: 8px; }
+
+/* ── Inline images (rendered by [IMG:N] markers) ── */
+.inline-img-wrap  { margin: 10px 0; }
+.inline-img-row   { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.inline-img-figure {
+  margin: 0; flex: 1; min-width: 140px; max-width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.inline-img {
+  width: 100%; max-height: 320px;
+  object-fit: contain;
+  display: block;
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+  background: var(--bg4);
+}
+.inline-img:hover     { opacity: 0.88; }
+.inline-img-caption   {
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+  border-top: 1px solid var(--border);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 #img-preview-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.85); z-index: 9999;
@@ -2651,11 +2679,49 @@ function injectCitationRefs(html, citeCount) {
   });
 }
 
+// Render [IMG:N] markers inline — uses citation list from current message context
+function injectInlineImages(html, citations) {
+  if (!citations || !citations.length) return html;
+
+  // Handle side-by-side: [IMG:N][IMG:M] consecutive → wrapped in a flex row
+  html = html.replace(/(\[IMG:(\d+)\])(\[IMG:(\d+)\])/g, (_, _a, n1, _b, n2) => {
+    const c1 = citations[parseInt(n1, 10) - 1];
+    const c2 = citations[parseInt(n2, 10) - 1];
+    if (!c1?.image_url && !c2?.image_url) return _;
+    const img1 = c1?.image_url ? buildInlineImg(c1, n1) : '';
+    const img2 = c2?.image_url ? buildInlineImg(c2, n2) : '';
+    return `<div class="inline-img-row">${img1}${img2}</div>`;
+  });
+
+  // Handle single [IMG:N]
+  html = html.replace(/\[IMG:(\d+)\]/g, (_, n) => {
+    const c = citations[parseInt(n, 10) - 1];
+    if (!c?.image_url) return '';
+    return `<div class="inline-img-wrap">${buildInlineImg(c, n)}</div>`;
+  });
+
+  return html;
+}
+
+function buildInlineImg(citation, n) {
+  const url     = escapeHtml(citation.image_url);
+  const caption = escapeHtml(citation.section_title || citation.file || `Hình ${n}`);
+  return `<figure class="inline-img-figure">
+    <img src="${url}" alt="Hình ${n}" class="inline-img"
+         onclick="openImagePreview('${url}')">
+    <figcaption class="inline-img-caption">${caption}</figcaption>
+  </figure>`;
+}
+
 function formatBotMessageHtml(rawText, opts) {
-  const isHtml = opts && opts.isHtml;
-  const citeCount = opts && opts.citeCount != null ? opts.citeCount : 0;
+  const isHtml     = opts && opts.isHtml;
+  const citeCount  = opts && opts.citeCount != null ? opts.citeCount : 0;
+  const citations  = opts && opts.citations ? opts.citations : [];
   let body = isHtml ? rawText : escapeHtml(rawText).replace(/\n/g, '<br>');
-  if (!isHtml) body = injectCitationRefs(body, citeCount);
+  if (!isHtml) {
+    body = injectCitationRefs(body, citeCount);
+    body = injectInlineImages(body, citations);
+  }
   return body;
 }
 
@@ -2957,7 +3023,7 @@ function addMessageWithActions(content, citations, engine, time, opts) {
   const cites = Array.isArray(citations) ? citations : [];
   const { cleanReply, suggestions } = parseSuggestions(content == null ? '' : String(content));
   const rawText = cleanReply;
-  const bodyHtml = formatBotMessageHtml(rawText, { ...o, citeCount: cites.length });
+  const bodyHtml = formatBotMessageHtml(rawText, { ...o, citeCount: cites.length, citations: cites });
   const timeStr = time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const engineTag = engine
     ? `<span class="meta-tag ${engine}">${engine === 'gemini' ? '✦ Gemini Flash' : engine === 'groq' ? '⚡ Groq' : '◉ Local'}</span>`
