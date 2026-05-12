@@ -8,7 +8,7 @@
  *   GEMINI_API_KEY — https://aistudio.google.com/app/apikey  (tùy chọn)
  */
 
-import { createEmbedding, searchDocuments } from './embed.js';
+import { createEmbedding, searchDocuments, classifyIntent, fetchSectionChunks } from './embed.js';
 
 const BASE_SYSTEM_PROMPT = `Bạn là TechBot — trợ lý AI chuyên về tài liệu kỹ thuật, bản vẽ CAD (DWG/DXF), sơ đồ P&ID, file Excel vật tư và hồ sơ kỹ thuật.
 
@@ -48,8 +48,14 @@ Hãy điều chỉnh phong cách trả lời phù hợp với vai trò này.`;
 async function getRagContext(userMessage, project, geminiKey) {
   try {
     const embedding = await createEmbedding(userMessage, geminiKey);
-    const chunks = await searchDocuments(embedding, project || null);
-    if (!chunks || chunks.length === 0) return { contextBlock: '', citations: [], failedImages: 0 };
+    const intent = classifyIntent(userMessage);
+    let chunks = await searchDocuments(embedding, project || null, intent);
+    if (!chunks || chunks.length === 0) return { contextBlock: '', citations: [], failedImages: 0, intent };
+
+    // Section-aware: với câu hỏi chi tiết, bổ sung chunks cùng section để không mất context
+    if (intent === 'detail') {
+      chunks = await fetchSectionChunks(chunks, project || null);
+    }
 
     const citations = chunks.map((c, i) => ({
       num: i + 1,
@@ -92,10 +98,10 @@ Hướng dẫn trả lời:
       contextBlock += `\n\n[LƯU Ý HỆ THỐNG: ${failedImages} hình ảnh trong tài liệu chưa được đọc do thiếu Gemini API key. Hãy thông báo cho user rằng để xem nội dung hình ảnh, họ cần nhập Gemini API key vào mục Cài đặt (góc trái sidebar). Key miễn phí tại aistudio.google.com]`;
     }
 
-    return { contextBlock, citations, failedImages };
+    return { contextBlock, citations, failedImages, intent };
   } catch (e) {
     console.error('RAG error:', e.message);
-    return { contextBlock: '', citations: [], failedImages: 0 };
+    return { contextBlock: '', citations: [], failedImages: 0, intent: 'detail' };
   }
 }
 
@@ -128,7 +134,7 @@ export default async function handler(req, res) {
 
   try {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
-    const { contextBlock, citations, failedImages } = await getRagContext(lastUserMsg, project, geminiKey);
+    const { contextBlock, citations, failedImages, intent } = await getRagContext(lastUserMsg, project, geminiKey);
 
     // Dùng Gemini nếu: (1) upload file vision, HOẶC (2) RAG trả về image citations có image_url
     const hasImageCitations = citations.some(c => c.type === 'image' && c.image_url);
@@ -151,7 +157,7 @@ export default async function handler(req, res) {
       ({ reply, engine } = await callGroq(augmentedMessages, fileName, roleContext, roleName, groqKey));
     }
 
-    return res.status(200).json({ reply, engine, citations, chunks_used: citations.length, failedImages });
+    return res.status(200).json({ reply, engine, citations, chunks_used: citations.length, failedImages, intent });
 
   } catch (err) {
     console.error('API error:', err);
