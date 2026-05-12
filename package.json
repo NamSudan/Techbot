@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "mammoth": "^1.8.0",
     "jszip": "^3.10.1",
+    "mammoth": "^1.8.0",
     "xlsx": "^0.18.5"
   }
 }
