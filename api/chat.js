@@ -125,11 +125,14 @@ export default async function handler(req, res) {
 
   // Nếu fileName là ảnh/PDF → thử Gemini; còn lại dùng Groq
   const isVisionFile = fileName && /\.(png|jpg|jpeg|gif|webp|pdf)$/i.test(fileName);
-  const useGemini    = isVisionFile && !!geminiKey;
 
   try {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
     const { contextBlock, citations, failedImages } = await getRagContext(lastUserMsg, project, geminiKey);
+
+    // Dùng Gemini nếu: (1) upload file vision, HOẶC (2) RAG trả về image citations có image_url
+    const hasImageCitations = citations.some(c => c.type === 'image' && c.image_url);
+    const useGemini = ((isVisionFile || hasImageCitations) && !!geminiKey);
 
     let augmentedMessages = messages;
     if (contextBlock) {
