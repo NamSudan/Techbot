@@ -300,9 +300,15 @@ async function parseDocxStructured(buffer, geminiKey, fileName) {
         const imgFile = zip.files[img.zipPath];
         if (!imgFile) continue;
 
+        const ext = img.zipPath.split('.').pop().toLowerCase();
+        // Skip vector/metafile formats Gemini Vision doesn't support
+        if (['wmf', 'emf', 'svg', 'tiff', 'tif'].includes(ext)) {
+          img.description = `[Định dạng ${ext.toUpperCase()} không hỗ trợ phân tích ảnh]`;
+          continue;
+        }
+
         const imgBuf  = await imgFile.async('nodebuffer');
         const imgB64  = imgBuf.toString('base64');
-        const ext     = img.zipPath.split('.').pop().toLowerCase();
         const imgMime = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
 
         // Inject context into prompt so Gemini understands the image's role
