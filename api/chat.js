@@ -135,6 +135,11 @@ Nếu không có thông tin đáng lưu, trả về {"memories": []}`;
 }
 
 async function getRagContext(userMessage, project, geminiKey) {
+  // Check key before attempting
+  if (!geminiKey && !process.env.GEMINI_API_KEY) {
+    const contextBlock = '\n\n[LƯU Ý HỆ THỐNG: Không có Gemini API key — không thể tra cứu tài liệu. Hãy thông báo user vào Cài đặt để nhập Gemini API key.]';
+    return { contextBlock, citations: [], failedImages: 0, intent: 'detail' };
+  }
   try {
     const embedding = await createEmbedding(userMessage, geminiKey);
     const intent = classifyIntent(userMessage);
@@ -182,7 +187,11 @@ Hướng dẫn trả lời:
     return { contextBlock, citations, failedImages, intent };
   } catch (e) {
     console.error('RAG error:', e.message);
-    return { contextBlock: '', citations: [], failedImages: 0, intent: 'detail' };
+    const isKeyError = e.message?.startsWith('INVALID_KEY:') || e.message?.startsWith('RATE_LIMIT:') || e.message?.includes('text-embedding');
+    const contextBlock = isKeyError
+      ? `\n\n[LƯU Ý HỆ THỐNG: Không thể tra cứu tài liệu vì Gemini API key lỗi (${e.message.slice(0, 80)}). Hãy thông báo user vào Cài đặt để kiểm tra lại Gemini API key.]`
+      : '';
+    return { contextBlock, citations: [], failedImages: 0, intent: 'detail' };
   }
 }
 
