@@ -198,3 +198,44 @@ Available via Claude Code CLI in this project:
 - `reembed.js` is paginated (batch of 20) with 120ms delay between requests to stay under Gemini's free-tier rate limit. The frontend calls it in a loop until `done: true`.
 - `vercel.json` sets `maxDuration: 60` for `ingest.js` and `reembed.js` only; all other functions use Vercel's default.
 - The Vietnamese system prompt in `chat.js` instructs the model to add `💡 GỢI Ý: ...` suggestion lines after document-based answers — do not remove this as the frontend may render it specially.
+
+---
+
+## Agent Protocol (Claude Code autonomous workflow)
+
+Claude Code operates as a fully autonomous agent for this project. Standing permissions:
+
+**Auto-merge immediately (no user approval needed):**
+- Bug fixes (500 errors, crashes, API failures)
+- Hotfixes for Gemini/Groq/Supabase error handling
+- UI tweaks (CSS, text, layout, UX improvements)
+- Resilience improvements (better error handling, graceful fallbacks)
+
+**Ask user first:**
+- Supabase schema changes (new tables, column drops)
+- Breaking changes to API endpoint shapes
+- Removing existing features
+
+**Autonomous workflow loop:**
+```
+Detect error (Vercel logs / user report)
+  → Read relevant code
+  → Write fix
+  → git commit + push to current branch
+  → Create PR (mcp__github__create_pull_request)
+  → Merge PR immediately (mcp__github__merge_pull_request)
+  → Wait ~5 min for Vercel deploy
+  → Verify via runtime logs (mcp__vercel__get_runtime_logs)
+  → If still errors → loop; if OK → report to user
+```
+
+**MCP tools used for autonomous operation:**
+
+| Task | Tool |
+|------|------|
+| Read error logs | `mcp__07f89d5e__get_runtime_logs` |
+| Check DB state | `mcp__ec178556__execute_sql` |
+| Apply DB migration | `mcp__ec178556__apply_migration` |
+| Create PR | `mcp__github__create_pull_request` |
+| Merge PR | `mcp__github__merge_pull_request` |
+| Check deployment | `mcp__07f89d5e__get_deployment` |

@@ -7,6 +7,17 @@
 
 import { createEmbedding, saveChunks, chunkText } from './embed.js';
 
+// Wraps createEmbedding so a single bad chunk doesn't crash the entire upload.
+// Returns null on failure; callers skip the chunk instead of re-throwing.
+async function safeEmbed(text, geminiKey, label) {
+  try {
+    return await createEmbedding(text, geminiKey);
+  } catch (e) {
+    console.warn(`[Embed] Skip "${label}":`, e.message);
+    return null;
+  }
+}
+
 const VISION_PROMPT_IMAGE = `Hãy phân tích hình ảnh kỹ thuật này và trích xuất TOÀN BỘ:
 1. Tất cả văn bản, số liệu, kích thước có trong ảnh
 2. Mô tả sơ đồ, bản vẽ, biểu đồ nếu có
@@ -455,8 +466,8 @@ export default async function handler(req, res) {
       // ── Direct image file ──
       const description = await callGeminiVision(fileBase64, mimeType || `image/${ext}`, VISION_PROMPT_IMAGE, geminiKey);
       const imageUrl    = await uploadImageToSupabase(fileBase64, fileName, 1, 0);
-      const embedding   = await createEmbedding(description, geminiKey);
-      rows.push({
+      const embedding   = await safeEmbed(description, geminiKey, 'direct image');
+      if (embedding) rows.push({
         file_name: fileName, project, role,
         page: 1, chunk_index: 0,
         chunk_type: 'image',
@@ -471,7 +482,8 @@ export default async function handler(req, res) {
       const { textChunks, imageObjects } = await parseDocxStructured(buffer, geminiKey, fileName);
 
       for (const tc of textChunks) {
-        const embedding = await createEmbedding(tc.text, geminiKey);
+        const embedding = await safeEmbed(tc.text, geminiKey, `docx text §${tc.sectionIndex}:${tc.chunkIndex}`);
+        if (!embedding) continue;
         rows.push({
           file_name: fileName, project, role,
           page: null, chunk_index: tc.chunkIndex,
@@ -492,7 +504,8 @@ export default async function handler(req, res) {
         const embedText = img.surroundingText
           ? `${img.description}\nContext: ${img.surroundingText}`
           : img.description;
-        const embedding = await createEmbedding(embedText, geminiKey);
+        const embedding = await safeEmbed(embedText, geminiKey, `docx image #${img._counter}`);
+        if (!embedding) continue;
         rows.push({
           file_name: fileName, project, role,
           page: null, chunk_index: img._counter,
@@ -514,7 +527,8 @@ export default async function handler(req, res) {
       if (extractedText.trim()) {
         const chunks = chunkText(extractedText);
         for (let i = 0; i < chunks.length; i++) {
-          const embedding = await createEmbedding(chunks[i], geminiKey);
+          const embedding = await safeEmbed(chunks[i], geminiKey, `xlsx text ${i}`);
+          if (!embedding) continue;
           rows.push({
             file_name: fileName, project, role,
             page: null, chunk_index: i,
@@ -526,7 +540,8 @@ export default async function handler(req, res) {
       }
       for (const img of imageObjects) {
         if (!img.description) continue;
-        const embedding = await createEmbedding(img.description, geminiKey);
+        const embedding = await safeEmbed(img.description, geminiKey, `xlsx image #${img.index}`);
+        if (!embedding) continue;
         rows.push({
           file_name: fileName, project, role,
           page: null, chunk_index: img.index,
@@ -547,7 +562,8 @@ export default async function handler(req, res) {
       if (extractedText.trim()) {
         const chunks = chunkText(extractedText);
         for (let i = 0; i < chunks.length; i++) {
-          const embedding = await createEmbedding(chunks[i], geminiKey);
+          const embedding = await safeEmbed(chunks[i], geminiKey, `pdf text ${i}`);
+          if (!embedding) continue;
           rows.push({
             file_name: fileName, project, role,
             page: null, chunk_index: i,
@@ -563,7 +579,8 @@ export default async function handler(req, res) {
       const extractedText = buffer.toString('utf-8');
       const chunks = chunkText(extractedText);
       for (let i = 0; i < chunks.length; i++) {
-        const embedding = await createEmbedding(chunks[i], geminiKey);
+        const embedding = await safeEmbed(chunks[i], geminiKey, `text file ${i}`);
+        if (!embedding) continue;
         rows.push({
           file_name: fileName, project, role,
           page: null, chunk_index: i,
