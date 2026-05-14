@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "url",
+      "url": "https://mcp.supabase.com",
+      "note": "Requires SUPABASE_ACCESS_TOKEN. Add to env or Claude Code MCP settings."
+    },
+    "vercel": {
+      "type": "url",
+      "url": "https://mcp.vercel.com",
+      "note": "Requires VERCEL_TOKEN. Add to env or Claude Code MCP settings."
+    }
+  }
+}

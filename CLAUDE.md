@@ -122,6 +122,73 @@ API keys flow: `getUserKeys()` reads from localStorage, keys are sent as `userKe
 
 Response rendering: bot replies use `[N]` citation markers and `[IMG:N]` inline image placeholders which the frontend (`injectCitationRefs`, `injectInlineImages`) converts to footnotes and `<img>` tags.
 
+## v2 Upgrade — New modules (added after initial release)
+
+### `api/tools.js` — Tool definitions + executors
+
+Exports `TOOL_SCHEMAS` (OpenAI-compatible array for Groq) and `executeTool(toolName, args, context)`.
+
+4 tools:
+- `calculate` — safe math eval via `new Function()` server-side
+- `convert_unit` — hardcoded conversion table (pressure, length, mass, temperature, power, force, volume)
+- `search_technical_standard` — DuckDuckGo instant answer API, 3s timeout, graceful degrade
+- `rag_search` — calls `createEmbedding` + `searchDocuments` from `embed.js` for targeted sub-queries
+
+### `api/memory.js` — Long-term memory CRUD
+
+Reads/writes `user_memories` table. Operations: `GET ?userId&project` (top 20, sorted by importance), `POST` (save 1 memory), `DELETE ?id&userId`.
+
+### `api/chat.js` — Agentic loop (v2)
+
+`callGroqWithTools()` replaces the old `callGroq()`:
+1. Loads user memories → injects into system prompt
+2. Runs up to **3 tool-call iterations** (Groq `finish_reason: 'tool_calls'` → execute → append `role:'tool'` → continue)
+3. Detects `CLARIF::` prefix in reply → sets `is_clarification: true` (rendered differently in frontend)
+4. Fire-and-forgets `extractAndSaveMemories()` after each turn (never blocks response)
+5. Returns `{ reply, engine, citations, chunks_used, is_clarification, toolResults }`
+
+Response shape change from v1: adds `is_clarification` and `toolResults` fields.
+
+### Supabase — `user_memories` table (v2)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | bigserial | PK |
+| `user_id` | text | From `localStorage['techbot_user_id']` (auto-generated UUID-like) |
+| `project` | text | NULL = cross-project memory |
+| `memory_type` | text | `'preference'` \| `'fact'` \| `'context'` \| `'correction'` |
+| `content` | text | The memory text (max ~500 chars) |
+| `importance` | int | 1–10 scale |
+| `created_at` | timestamptz | |
+| `accessed_at` | timestamptz | Updated on each read |
+
+Migration file: `supabase_migration_v2.sql` — run in Supabase SQL Editor.
+
+### Frontend v2 additions (`index.html`)
+
+New localStorage keys:
+- `localStorage['techbot_user_id']` — persistent user ID (format: `u_<timestamp36>_<random>`)
+- `localStorage['techbot_roles']` — JSON array of role objects (replaces hardcoded `rolePrompts`/`roleNames`)
+
+Role object shape: `{ id, name, icon, description, isDefault }`. Defaults (engineer/trainer/operator) cannot be deleted but can be edited. Custom roles are fully user-managed via sidebar UI.
+
+Large file handling: images >2MB auto-compressed via canvas; text files >3MB chunked client-side (multiple POST requests); DOCX/XLSX/PDF >4MB show extended progress toast; files >20MB blocked.
+
+Clarification UI: bot replies prefixed `CLARIF::` render as purple bubble (`.msg-clarif-bubble`) instead of normal bot message.
+
+Thinking mode: adds `'agent'` mode with steps "Phân tích → Lập kế hoạch → Thực thi → Tổng hợp" when query is complex.
+
+---
+
+## Custom slash commands
+
+Available via Claude Code CLI in this project:
+- `/status` — checks all dependencies (files, Supabase tables, env vars)
+- `/deploy` — deployment checklist before `vercel --prod`
+- `/debug` — guided debug flow for common TechBot issues
+
+---
+
 ## Key conventions
 
 - All `api/*.js` files are ESM (`"type": "module"` in package.json) and export a default `handler(req, res)` for Vercel.

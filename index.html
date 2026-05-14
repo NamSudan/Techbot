@@ -636,6 +636,25 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .meta-tag.local  { background: rgba(167,139,250,.1);color: var(--purple); }
 .meta-time { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-left: auto; }
 
+.msg-clarif-bubble {
+  background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.35);
+  border-left: 3px solid var(--purple); border-radius: 12px; border-top-left-radius: 4px;
+  padding: 12px 16px; max-width: 600px;
+}
+.msg-clarif-label {
+  font-size: 10px; font-family: var(--font-mono); color: var(--purple);
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; font-weight: 600;
+}
+.msg-clarif-text { font-size: 14px; color: var(--text1); line-height: 1.6; }
+
+.role-tab-delete {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-size: 12px; padding: 2px 6px; border-radius: 4px; margin-left: auto; flex-shrink: 0;
+}
+.role-tab-delete:hover { background: rgba(255,77,109,.15); color: var(--red); }
+.role-tab-add { border: 1px dashed var(--border) !important; opacity: .7; }
+.role-tab-add:hover { opacity: 1; border-color: var(--accent) !important; }
+
 .bubble-file {
   display: flex; align-items: center; gap: 10px;
   background: var(--bg4); border: 1px solid var(--border); border-radius: 8px;
@@ -1710,28 +1729,8 @@ textarea::placeholder { color: var(--text3); }
 
     <!-- ── ROLE TABS ── -->
     <div class="role-tabs-wrapper">
-      <div class="role-tabs">
-        <div class="role-tab" onclick="switchRole(this, 'trainer')">
-          <div class="role-tab-icon">👨‍🏫</div>
-          <div class="role-tab-info">
-            <span class="role-tab-name">Nhân viên đào tạo</span>
-            <span class="role-tab-desc">Hỗ trợ training & hướng dẫn</span>
-          </div>
-        </div>
-        <div class="role-tab active" onclick="switchRole(this, 'engineer')">
-          <div class="role-tab-icon">⚙️</div>
-          <div class="role-tab-info">
-            <span class="role-tab-name">Kỹ sư</span>
-            <span class="role-tab-desc">Phân tích kỹ thuật chuyên sâu</span>
-          </div>
-        </div>
-        <div class="role-tab" onclick="switchRole(this, 'operator')">
-          <div class="role-tab-icon">🔧</div>
-          <div class="role-tab-info">
-            <span class="role-tab-name">Vận hành viên</span>
-            <span class="role-tab-desc">Hướng dẫn vận hành & bảo trì</span>
-          </div>
-        </div>
+      <div class="role-tabs" id="role-tabs-container">
+        <!-- Rendered dynamically by renderRoleTabs() -->
       </div>
     </div>
 
@@ -1969,7 +1968,21 @@ let msgPayloadId = 0;
 const msgPayloads = new Map();
 let currentRole = 'engineer';
 
+// Persistent user ID for long-term memory
+function getOrCreateUserId() {
+  const KEY = 'techbot_user_id';
+  let uid = localStorage.getItem(KEY);
+  if (!uid) {
+    uid = 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+    localStorage.setItem(KEY, uid);
+  }
+  return uid;
+}
+const TECHBOT_USER_ID = getOrCreateUserId();
+
 let thinkingIndicatorTimeouts = [];
+
+const AGENT_PATTERNS = /tính|tính toán|convert|chuyển đổi|đổi đơn vị|tiêu chuẩn|quy chuẩn|so sánh.*và|phân tích.*toàn diện|liệt kê tất cả|báo cáo|tổng hợp|kết hợp/i;
 
 function detectThinkingMode(text, hasFile, hasProject) {
   const GREETINGS = /^(xin chào|chào|hello|hi|hey|ok|oke|được|cảm ơn|thanks|thank you|tốt|👍|😊|có|không|ừ|uhm|vâng|dạ)\b/i;
@@ -1977,6 +1990,7 @@ function detectThinkingMode(text, hasFile, hasProject) {
   const isGreeting = GREETINGS.test(text.trim());
   if (hasFile) return 'file';
   if (isShort && isGreeting) return 'chat';
+  if (hasProject && (text.length > 80 || AGENT_PATTERNS.test(text))) return 'agent';
   if (hasProject || totalFileCount > 0) return 'rag';
   return 'chat';
 }
@@ -2007,6 +2021,12 @@ function showThinkingIndicator(mode = 'chat') {
       'Tìm kiếm tài liệu liên quan...',
       'Đọc nội dung phù hợp...',
       'Đang tổng hợp câu trả lời...'
+    ],
+    agent: [
+      'Phân tích câu hỏi...',
+      'Lập kế hoạch trả lời...',
+      'Thực thi từng bước...',
+      'Tổng hợp kết quả...'
     ]
   };
 
@@ -2072,30 +2092,25 @@ function hideThinkingIndicator() {
   });
 }
 
-// ── Role switching ──
-const roleNames = {
-  trainer: 'Nhân viên đào tạo',
-  engineer: 'Kỹ sư',
-  operator: 'Vận hành viên'
-};
-const rolePrompts = {
-  trainer: 'Bạn là trợ lý đào tạo kỹ thuật, giải thích đơn giản và chi tiết cho nhân viên mới.',
-  engineer: 'Bạn là trợ lý kỹ sư, phân tích kỹ thuật chuyên sâu với số liệu và công thức.',
-  operator: 'Bạn là trợ lý vận hành, hướng dẫn quy trình vận hành và bảo trì thiết bị.'
-};
+// ── Dynamic Role System ──
+const DEFAULT_ROLES = [
+  { id: 'engineer', name: 'Kỹ sư', icon: '⚙️', description: 'Bạn là trợ lý kỹ sư, phân tích kỹ thuật chuyên sâu với số liệu và công thức.', isDefault: true },
+  { id: 'trainer',  name: 'Nhân viên đào tạo', icon: '👨‍🏫', description: 'Bạn là trợ lý đào tạo kỹ thuật, giải thích đơn giản và chi tiết cho nhân viên mới.', isDefault: true },
+  { id: 'operator', name: 'Vận hành viên', icon: '🔧', description: 'Bạn là trợ lý vận hành, hướng dẫn quy trình vận hành và bảo trì thiết bị.', isDefault: true }
+];
 
-const roleSuggestions = {
-  trainer: [
-    { icon: '📋', text: 'Tóm tắt quy trình vận hành cho nhân viên mới' },
-    { icon: '✅', text: 'Tạo bài kiểm tra về quy trình an toàn' },
-    { icon: '📐', text: 'Giải thích các ký hiệu trong bản vẽ kỹ thuật' },
-    { icon: '📝', text: 'Hướng dẫn từng bước thực hiện ca vận hành' }
-  ],
+const DEFAULT_SUGGESTIONS = {
   engineer: [
     { icon: '🔍', text: 'Phân tích thông số kỹ thuật từ tài liệu' },
     { icon: '📊', text: 'So sánh các phương án thiết kế' },
     { icon: '⚙️', text: 'Tính toán tải trọng và kết cấu' },
     { icon: '📐', text: 'Kiểm tra bản vẽ theo tiêu chuẩn' }
+  ],
+  trainer: [
+    { icon: '📋', text: 'Tóm tắt quy trình vận hành cho nhân viên mới' },
+    { icon: '✅', text: 'Tạo bài kiểm tra về quy trình an toàn' },
+    { icon: '📐', text: 'Giải thích các ký hiệu trong bản vẽ kỹ thuật' },
+    { icon: '📝', text: 'Hướng dẫn từng bước thực hiện ca vận hành' }
   ],
   operator: [
     { icon: '🔧', text: 'Hướng dẫn khởi động thiết bị theo quy trình' },
@@ -2105,31 +2120,152 @@ const roleSuggestions = {
   ]
 };
 
+function getRoles() {
+  try {
+    const saved = localStorage.getItem('techbot_roles');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return DEFAULT_ROLES;
+}
+
+function saveRoles(roles) {
+  localStorage.setItem('techbot_roles', JSON.stringify(roles));
+}
+
+function getRoleById(id) {
+  return getRoles().find(r => r.id === id) || getRoles()[0];
+}
+
+function renderRoleTabs() {
+  const roles = getRoles();
+  const wrapper = document.getElementById('role-tabs-container');
+  if (!wrapper) return;
+  wrapper.innerHTML = roles.map(r => `
+    <div class="role-tab${r.id === currentRole ? ' active' : ''}" onclick="switchRole(this, '${r.id}')">
+      <div class="role-tab-icon">${r.icon}</div>
+      <div class="role-tab-info">
+        <span class="role-tab-name">${r.name}</span>
+        <span class="role-tab-desc">${r.description.slice(0, 50)}${r.description.length > 50 ? '...' : ''}</span>
+      </div>
+      ${!r.isDefault ? `<button class="role-tab-delete" onclick="deleteRole('${r.id}', event)" title="Xóa vai trò">✕</button>` : ''}
+    </div>
+  `).join('') + `
+    <div class="role-tab role-tab-add" onclick="openAddRoleModal()">
+      <div class="role-tab-icon">➕</div>
+      <div class="role-tab-info">
+        <span class="role-tab-name">Thêm vai trò</span>
+        <span class="role-tab-desc">Tạo vai trò tùy chỉnh</span>
+      </div>
+    </div>`;
+}
+
 function switchRole(el, role) {
   document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   currentRole = role;
-  
-  // Update breadcrumb
-  document.getElementById('breadcrumb-role').textContent = roleNames[role];
-  
-  // Update suggestions
+  const r = getRoleById(role);
+  document.getElementById('breadcrumb-role').textContent = r?.name || role;
   updateSuggestions(role);
-  
-  showNotif(`Đã chuyển sang: ${roleNames[role]}`, 'success');
+  showNotif(`Đã chuyển sang: ${r?.name || role}`, 'success');
 }
 
 function updateSuggestions(role) {
   const grid = document.getElementById('suggestions-grid');
   if (!grid) return;
-  
-  const suggestions = roleSuggestions[role] || roleSuggestions.engineer;
+  const suggestions = DEFAULT_SUGGESTIONS[role] || [];
+  if (suggestions.length === 0) {
+    grid.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px 4px">Nhập câu hỏi để bắt đầu...</div>';
+    return;
+  }
   grid.innerHTML = suggestions.map(s => `
     <div class="suggestion-card" onclick="useSuggestion(this)">
       <div class="suggestion-card-icon">${s.icon}</div>
       <div class="suggestion-card-text">${s.text}</div>
     </div>
   `).join('');
+}
+
+function deleteRole(id, event) {
+  event.stopPropagation();
+  const roles = getRoles();
+  const role = roles.find(r => r.id === id);
+  if (!role || role.isDefault) return;
+  if (!confirm(`Xóa vai trò "${role.name}"?`)) return;
+  saveRoles(roles.filter(r => r.id !== id));
+  if (currentRole === id) {
+    currentRole = 'engineer';
+    document.getElementById('breadcrumb-role').textContent = 'Kỹ sư';
+  }
+  renderRoleTabs();
+  showNotif('Đã xóa vai trò', 'success');
+}
+
+function openAddRoleModal(editId = null) {
+  const existing = editId ? getRoleById(editId) : null;
+  const ICONS = ['⚙️','👨‍🏫','🔧','👔','🔬','📊','🛡️','🔌','🏗️','📋','🤖','👷'];
+  const selectedIcon = existing?.icon || '🤖';
+
+  const modal = document.createElement('div');
+  modal.id = 'role-modal-overlay';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;width:min(420px,90vw);display:flex;flex-direction:column;gap:16px;">
+      <h3 style="margin:0;font-size:16px;color:var(--text1)">${editId ? 'Sửa vai trò' : 'Thêm vai trò mới'}</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="font-size:12px;color:var(--text2)">Icon</label>
+        <div id="icon-picker" style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${ICONS.map(ic => `<span class="icon-opt${ic === selectedIcon ? ' selected' : ''}" onclick="selectIcon(this,'${ic}')" style="cursor:pointer;font-size:20px;padding:4px 8px;border-radius:6px;border:1px solid ${ic === selectedIcon ? 'var(--accent)' : 'transparent'};background:${ic === selectedIcon ? 'rgba(0,212,255,.1)' : 'transparent'}">${ic}</span>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:12px;color:var(--text2)">Tên vai trò *</label>
+        <input id="role-modal-name" placeholder="Ví dụ: Giám đốc, QA, An toàn..." value="${existing?.name || ''}"
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text1);font-size:14px;outline:none;width:100%;box-sizing:border-box;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:12px;color:var(--text2)">Mô tả vai trò — AI sẽ điều chỉnh theo phong cách này *</label>
+        <textarea id="role-modal-desc" rows="4" placeholder="Ví dụ: Bạn là trợ lý cho giám đốc, tổng hợp thông tin ngắn gọn, tập trung vào rủi ro và quyết định quan trọng..."
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text1);font-size:13px;outline:none;width:100%;box-sizing:border-box;resize:vertical;">${existing?.description || ''}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('role-modal-overlay').remove()"
+          style="padding:8px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:13px;">Hủy</button>
+        <button onclick="saveRoleModal('${editId || ''}')"
+          style="padding:8px 18px;background:var(--accent);border:none;border-radius:8px;color:#000;cursor:pointer;font-size:13px;font-weight:600;">Lưu</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+window._selectedRoleIcon = null;
+function selectIcon(el, icon) {
+  document.querySelectorAll('#icon-picker .icon-opt').forEach(e => {
+    e.style.border = '1px solid transparent'; e.style.background = 'transparent';
+  });
+  el.style.border = '1px solid var(--accent)'; el.style.background = 'rgba(0,212,255,.1)';
+  window._selectedRoleIcon = icon;
+}
+
+function saveRoleModal(editId) {
+  const name = document.getElementById('role-modal-name')?.value.trim();
+  const desc = document.getElementById('role-modal-desc')?.value.trim();
+  const icon = window._selectedRoleIcon || (editId ? getRoleById(editId)?.icon : '🤖');
+  if (!name || !desc) { showNotif('Vui lòng điền tên và mô tả', 'error'); return; }
+
+  const roles = getRoles();
+  if (editId) {
+    const idx = roles.findIndex(r => r.id === editId);
+    if (idx >= 0) { roles[idx] = { ...roles[idx], name, description: desc, icon }; }
+  } else {
+    const newId = 'custom_' + Date.now();
+    roles.push({ id: newId, name, icon, description: desc, isDefault: false });
+  }
+  saveRoles(roles);
+  document.getElementById('role-modal-overlay')?.remove();
+  renderRoleTabs();
+  showNotif(editId ? 'Đã cập nhật vai trò' : 'Đã thêm vai trò mới', 'success');
+  window._selectedRoleIcon = null;
 }
 
 function useSuggestion(el) {
@@ -2581,11 +2717,21 @@ function handleDropPanel(e) {
   document.getElementById('dropzone-panel').classList.remove('drag');
   addPanelFiles(e.dataTransfer.files);
 }
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB hard limit
+const LARGE_FILE_WARN_BYTES = 4 * 1024 * 1024; // 4MB warning
+
 function addPanelFiles(files) {
   const grid = document.getElementById('upload-preview-grid');
   const statsEl = document.getElementById('upload-stats');
-  
+
   Array.from(files).forEach((f, idx) => {
+    if (f.size > MAX_FILE_SIZE_BYTES) {
+      showNotif(`File "${f.name}" quá lớn (>${Math.round(f.size/1048576)}MB). Giới hạn là 20MB.`, 'error');
+      return;
+    }
+    if (f.size > LARGE_FILE_WARN_BYTES) {
+      showNotif(`File "${f.name}" lớn (${(f.size/1048576).toFixed(1)}MB) — xử lý có thể mất 30–60 giây.`, 'info');
+    }
     panelPendingFiles.push(f);
     const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB';
     const ext = getExt(f.name);
@@ -3121,6 +3267,23 @@ function addMessageWithActions(content, citations, engine, time, opts) {
   document.getElementById('nav-chat-badge').textContent = msgCount;
 }
 
+function addClarificationMessage(text) {
+  const msgs = document.getElementById('messages');
+  document.getElementById('chat-empty')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+  wrap.innerHTML = `
+    <div class="avatar">⚙</div>
+    <div class="msg-clarif-bubble">
+      <div class="msg-clarif-label">Cần làm rõ</div>
+      <div class="msg-clarif-text">${text.replace(/\n/g, '<br>')}</div>
+    </div>`;
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  msgCount++;
+  document.getElementById('nav-chat-badge').textContent = msgCount;
+}
+
 async function sendMessage() {
   const ta = document.getElementById('chat-input');
   const text = ta.value.trim();
@@ -3146,10 +3309,11 @@ async function sendMessage() {
       body: JSON.stringify({
         messages: conversationHistory,
         fileName: fileName || null,
-        roleContext: rolePrompts[currentRole],
-        roleName: roleNames[currentRole],
+        roleContext: getRoleById(currentRole)?.description || null,
+        roleName: getRoleById(currentRole)?.name || null,
         project: window.currentProject || null,
-        userKeys: getUserKeys()
+        userKeys: getUserKeys(),
+        userId: TECHBOT_USER_ID
       })
     });
     if (!res.ok) {
@@ -3172,7 +3336,9 @@ async function sendMessage() {
     conversationHistory.push({ role: 'assistant', content: cleanReply });
     await hideThinkingIndicator();
     const citations = data.citations || [];
-    if (citations.length > 0) {
+    if (data.is_clarification) {
+      addClarificationMessage(reply);
+    } else if (citations.length > 0) {
       addMessageWithActions(reply, citations, data.engine || 'groq', null, { isHtml: false, citeCount: citations.length });
     } else {
       addMessage('bot', reply, data.engine || 'groq', null, null);
@@ -3332,11 +3498,11 @@ function loadChatSession(id) {
   // Restore role nếu khác
   if (session.role && session.role !== currentRole) {
     const tab = document.querySelector(`.role-tab[onclick*="${session.role}"]`);
-    if (tab) {
-      document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+    if (session.role) {
       currentRole = session.role;
-      document.getElementById('breadcrumb-role').textContent = roleNames[session.role];
+      const r = getRoleById(session.role);
+      document.getElementById('breadcrumb-role').textContent = r?.name || session.role;
+      renderRoleTabs();
       updateSuggestions(session.role);
     }
   }
@@ -3658,6 +3824,8 @@ window.addEventListener('resize', checkResponsive);
 checkResponsive();
 loadProjectsFromSupabase();
 renderChatHistory();
+renderRoleTabs();
+updateSuggestions(currentRole);
 
 function openImagePreview(url) {
   const overlay = document.getElementById('img-preview-overlay');

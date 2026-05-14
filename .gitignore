@@ -4,6 +4,10 @@ node_modules/
 .vercel/
 *.log
 .DS_Store
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/*.md
+!.claude/mcp.json
+!.claude/settings.json
 test-rag.js
 test-docx.js
