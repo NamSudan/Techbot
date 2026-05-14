@@ -4,6 +4,7 @@
   ],
   "functions": {
     "api/reembed.js": { "maxDuration": 60 },
-    "api/ingest.js":  { "maxDuration": 60 }
+    "api/ingest.js":  { "maxDuration": 60 },
+    "api/chat.js":    { "maxDuration": 30 }
   }
 }

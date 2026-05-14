@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add api/*)",
+      "Bash(git add index.html)",
+      "Bash(git add vercel.json)",
+      "Bash(git add CLAUDE.md)",
+      "Bash(git add .claude/*)",
+      "Bash(grep -r * api/)",
+      "Bash(grep -n * index.html)",
+      "Bash(node --input-type=module*)",
+      "Bash(node test_phase1.mjs)"
+    ]
+  }
+}
