@@ -18,12 +18,21 @@ async function safeEmbed(text, geminiKey, label) {
   }
 }
 
-const VISION_PROMPT_IMAGE = `Hãy phân tích hình ảnh kỹ thuật này và trích xuất TOÀN BỘ:
-1. Tất cả văn bản, số liệu, kích thước có trong ảnh
-2. Mô tả sơ đồ, bản vẽ, biểu đồ nếu có
-3. Bảng biểu và dữ liệu trong bảng
-4. Ký hiệu kỹ thuật, chú thích, ghi chú
-Trả về text có cấu trúc rõ ràng.`;
+const VISION_PROMPT_IMAGE = `Phân tích hình ảnh kỹ thuật này theo 2 bước:
+
+BƯỚC 1 — XÁC ĐỊNH LOẠI: Đây là loại tài liệu/hình ảnh gì?
+(P&ID / sơ đồ điện / bản vẽ cơ khí / ảnh thiết bị thực tế / bảng dữ liệu / lưu đồ quy trình / khác)
+
+BƯỚC 2 — TRÍCH XUẤT theo loại đã xác định:
+- Nếu P&ID/sơ đồ ống & thiết bị: tag number (FT-101, LV-202, P-001...), loại từng thiết bị, đường kết nối từ→đến, setpoint/range, safety device, van điều khiển
+- Nếu sơ đồ điện: nhãn thiết bị, đường dây mạch, equipment ID, công suất/rating, bảo vệ, relay
+- Nếu bản vẽ cơ khí/CAD: kích thước, vật liệu, dung sai, số hiệu bộ phận, ghi chú kỹ thuật
+- Nếu ảnh thiết bị thực tế: model/nameplate, thông số kỹ thuật nhìn thấy, trạng thái, vị trí lắp đặt
+- Nếu bảng dữ liệu: giữ nguyên toàn bộ cấu trúc header + mọi row/column
+- Nếu lưu đồ quy trình: các bước theo thứ tự, decision point, điều kiện mỗi nhánh, kết quả
+- Các loại khác: trích xuất tất cả văn bản, số liệu, ký hiệu, chú thích
+
+Trả về text có cấu trúc rõ ràng, đủ thông tin để trả lời câu hỏi kỹ thuật về hình ảnh này.`;
 
 const VISION_PROMPT_PDF = `Đây là tài liệu kỹ thuật PDF. Hãy trích xuất TOÀN BỘ nội dung:
 1. Tất cả văn bản theo đúng thứ tự

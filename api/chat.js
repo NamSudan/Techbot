@@ -23,17 +23,26 @@ QUY TẮC HỎI LẠI:
 - Ví dụ đúng: "CLARIF::Để tính tải trọng chính xác, bạn cho tôi biết: (1) loại tải? (2) kết cấu gì? (3) tiêu chuẩn?"
 - Ví dụ SAI (không được làm): Hỏi lại "qui trình nào?" khi đã có tài liệu trong context.
 
+QUY TẮC SUY LUẬN VÀ TÌM KIẾM TÀI LIỆU:
+- Khi có project tài liệu, LUÔN dùng rag_search TRƯỚC khi trả lời câu hỏi kỹ thuật
+- Suy luận trước: câu hỏi này cần thông tin gì? tag number? thông số? quy trình? sơ đồ?
+- Query phải CỤ THỂ: rag_search("FT-101 flow transmitter range setpoint") tốt hơn rag_search("thông số")
+- Nếu kết quả lần 1 chưa đủ → gọi rag_search lần 2 với góc độ khác (ví dụ: overview để thấy toàn bộ, detail để đào sâu)
+- Kết hợp nhiều kết quả để trả lời toàn diện
+- Nếu không tìm thấy trong tài liệu → nói rõ "Tôi không tìm thấy thông tin này trong tài liệu"
+
 QUY TẮC TOOLS:
 - Dùng tool "calculate" khi cần tính toán số liệu (diện tích, tải trọng, chuyển đổi công thức)
 - Dùng tool "convert_unit" khi cần đổi đơn vị (PSI→MPa, inch→mm, hp→kW...)
 - Dùng tool "search_technical_standard" khi hỏi tiêu chuẩn mà tài liệu không có
-- Dùng tool "rag_search" khi cần tra cứu thêm khía cạnh cụ thể trong tài liệu
+- Dùng tool "rag_search" để tra cứu tài liệu — gọi nhiều lần với query khác nhau nếu cần
 - Tích hợp kết quả tool tự nhiên vào câu trả lời, không hiển thị raw output của tool
 
 QUY TẮC HIỂN THỊ HÌNH ẢNH:
-- Khi câu trả lời cần hình ảnh minh hoạ, chèn [IMG:N] vào đúng vị trí trong text (N là số của citation HÌNH ẢNH)
-- Chỉ dùng [IMG:N] khi thực sự cần — không dùng nếu câu hỏi chỉ cần text
+- Khi rag_search trả về kết quả có nhãn "[HÌNH ẢNH từ ... — dùng [IMG:N] để hiển thị]": CHÈN [IMG:N] vào đúng vị trí trong câu trả lời để người dùng nhìn thấy hình ảnh minh hoạ
+- Hình ảnh rất có giá trị cho câu hỏi về sơ đồ, bản vẽ, thiết bị — hãy chủ động trích dẫn khi có
 - [IMG:N][IMG:M] viết liền nhau = hiển thị 2 ảnh song song để so sánh
+- Chỉ bỏ qua [IMG:N] nếu câu hỏi hoàn toàn không liên quan đến hình ảnh
 
 QUY TẮC TRỢ LÝ CHỦ ĐỘNG:
 - Nếu câu hỏi ngắn/chung chung VÀ KHÔNG có tài liệu nào trong context: tóm tắt nhanh rồi hỏi lại: "Bạn muốn tìm hiểu thêm về khía cạnh nào?"
@@ -44,8 +53,12 @@ QUY TẮC TRỢ LÝ CHỦ ĐỘNG:
   (tối đa 3 gợi ý, ngắn gọn dưới 8 từ mỗi cái, liên quan trực tiếp đến nội dung vừa trả lời)
 - Với tin nhắn chào hỏi hoặc không liên quan tài liệu: KHÔNG thêm dòng 💡 GỢI Ý.`;
 
-function getSystemPrompt(roleContext, roleName, memories = []) {
+function getSystemPrompt(roleContext, roleName, memories = [], projectName = null) {
   let prompt = BASE_SYSTEM_PROMPT;
+
+  if (projectName) {
+    prompt += `\n\nPROJECT HIỆN TẠI: "${projectName}". Tài liệu kỹ thuật đã được upload vào project này. Hãy dùng tool rag_search để tra cứu thông tin từ tài liệu trước khi trả lời câu hỏi kỹ thuật.`;
+  }
 
   if (memories.length > 0) {
     const memLines = memories.map(m => `- [${m.memory_type}] ${m.content}`).join('\n');
@@ -195,13 +208,13 @@ Hướng dẫn trả lời:
   }
 }
 
-// Agentic loop: up to 3 tool-call iterations
-async function callGroqWithTools(messages, roleContext, roleName, groqKey, geminiKey, project, userId) {
+// Agentic loop: up to 5 tool-call iterations — LLM drives its own retrieval
+async function callGroqWithTools(messages, roleContext, roleName, groqKey, geminiKey, project, userId, sharedCitations) {
   if (!groqKey) throw new Error('Thiếu Groq API key — vào Cài đặt để nhập key của bạn');
 
   const memories = await getUserMemories(userId, project);
-  const systemPrompt = getSystemPrompt(roleContext, roleName, memories);
-  const toolContext = { project, geminiKey };
+  const systemPrompt = getSystemPrompt(roleContext, roleName, memories, project);
+  const toolContext = { project, geminiKey, citations: sharedCitations };
 
   let groqMessages = [
     { role: 'system', content: systemPrompt },
@@ -209,14 +222,14 @@ async function callGroqWithTools(messages, roleContext, roleName, groqKey, gemin
   ];
 
   const toolResults = [];
-  const MAX_ITERATIONS = 3;
+  const MAX_ITERATIONS = 5;
 
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     const isLastIter = iter === MAX_ITERATIONS - 1;
     const body = {
       model: 'llama-3.3-70b-versatile',
       messages: groqMessages,
-      max_tokens: isLastIter ? 1500 : 800,
+      max_tokens: isLastIter ? 3000 : 1500,
       temperature: 0.7
     };
     if (!isLastIter) {
@@ -333,35 +346,39 @@ export default async function handler(req, res) {
 
   try {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
-    const { contextBlock, citations, failedImages, intent } = await getRagContext(lastUserMsg, project, geminiKey);
 
-    const hasImageCitations = citations.some(c => c.type === 'image' && c.image_url);
-    const useGemini = ((isVisionFile || hasImageCitations) && !!geminiKey);
+    // Shared citations array — populated by rag_search tool calls during agentic loop
+    const sharedCitations = [];
 
-    let augmentedMessages = messages;
-    if (contextBlock) {
-      augmentedMessages = messages.map((m, i) => {
-        if (i === messages.length - 1 && m.role === 'user') {
-          return { ...m, content: m.content + contextBlock };
-        }
-        return m;
-      });
-    }
+    // Only use Gemini for direct vision file uploads (PDF/image sent as base64)
+    // Image citations from rag_search are handled by Groq+tools agentic loop
+    const useGemini = (isVisionFile && !!geminiKey);
 
     let reply, engine, toolResults = [], isClarification = false;
 
     if (useGemini) {
+      // For direct file uploads, use pre-fetched RAG context for Gemini
+      const { contextBlock, citations: ragCitations, failedImages, intent } = await getRagContext(lastUserMsg, project, geminiKey);
+      ragCitations.forEach(c => sharedCitations.push(c));
+      const augmentedMessages = contextBlock
+        ? messages.map((m, i) => i === messages.length - 1 && m.role === 'user'
+            ? { ...m, content: m.content + contextBlock } : m)
+        : messages;
       ({ reply, engine, toolResults, isClarification } = await callGemini(augmentedMessages, fileName, roleContext, roleName, geminiKey, groqKey));
-    } else {
-      ({ reply, engine, toolResults, isClarification } = await callGroqWithTools(augmentedMessages, roleContext, roleName, groqKey, geminiKey, project, userId));
+      // Fire-and-forget memory extraction
+      if (userId && !isClarification) extractAndSaveMemories(userId, project, lastUserMsg, reply, groqKey).catch(() => {});
+      return res.status(200).json({ reply, engine, citations: sharedCitations, chunks_used: sharedCitations.length, failedImages, intent, is_clarification: isClarification, toolResults });
     }
+
+    // Agentic path: LLM drives its own retrieval via rag_search tool
+    ({ reply, engine, toolResults, isClarification } = await callGroqWithTools(messages, roleContext, roleName, groqKey, geminiKey, project, userId, sharedCitations));
 
     // Fire-and-forget memory extraction (never blocks response)
     if (userId && !isClarification) {
       extractAndSaveMemories(userId, project, lastUserMsg, reply, groqKey).catch(() => {});
     }
 
-    return res.status(200).json({ reply, engine, citations, chunks_used: citations.length, failedImages, intent, is_clarification: isClarification, toolResults });
+    return res.status(200).json({ reply, engine, citations: sharedCitations, chunks_used: sharedCitations.length, failedImages: 0, intent: 'agentic', is_clarification: isClarification, toolResults });
 
   } catch (err) {
     console.error('API error:', err);

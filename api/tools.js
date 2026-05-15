@@ -150,7 +150,7 @@ export async function executeTool(toolName, args, context = {}) {
     }
 
     case 'rag_search': {
-      const { project, geminiKey } = context;
+      const { project, geminiKey, citations } = context;
       if (!project || !geminiKey) return 'Không có tài liệu nào được chọn để tìm kiếm.';
       const embedding = await createEmbedding(args.query, geminiKey);
       const intent = args.intent || 'detail';
@@ -159,9 +159,23 @@ export async function executeTool(toolName, args, context = {}) {
         chunks = await fetchSectionChunks(chunks, project);
       }
       if (chunks.length === 0) return `Không tìm thấy thông tin liên quan đến: "${args.query}"`;
-      const snippets = chunks.slice(0, 5).map((c, i) =>
-        `[${i + 1}] ${c.section_title ? `**${c.section_title}**: ` : ''}${c.chunk_text.slice(0, 300)}...`
-      );
+      const snippets = chunks.slice(0, 5).map((c) => {
+        const citNum = citations ? citations.length + 1 : 0;
+        if (c.chunk_type === 'image' && c.image_url) {
+          if (citations) citations.push({
+            num: citNum, file: c.file_name, type: 'image',
+            image_url: c.image_url, text: c.chunk_text, section_title: c.section_title || null
+          });
+          const loc = `${c.file_name}${c.section_title ? ` - ${c.section_title}` : ''}`;
+          return `[${citNum}] [HÌNH ẢNH từ ${loc} — dùng [IMG:${citNum}] để hiển thị]\nMô tả: ${c.chunk_text.slice(0, 400)}`;
+        } else {
+          if (citations) citations.push({
+            num: citNum, file: c.file_name, type: 'text',
+            text: c.chunk_text, section_title: c.section_title || null
+          });
+          return `[${citNum}]${c.section_title ? ` **${c.section_title}**: ` : ' '}${c.chunk_text.slice(0, 300)}...`;
+        }
+      });
       return snippets.join('\n\n');
     }
 
