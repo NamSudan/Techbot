@@ -72,12 +72,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .api-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
 .api-label { color: var(--text2); font-family: var(--font-mono); }
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-.dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
-.dot.off { background: var(--text3); }
+.dot.on    { background: var(--green);  box-shadow: 0 0 6px var(--green);  animation: pulse 2s infinite; }
+.dot.off   { background: var(--text3); }
+.dot.warn  { background: var(--amber);  box-shadow: 0 0 4px var(--amber); }
+.dot.err   { background: #e05555; }
+.dot.check { background: #64b5f6; animation: pulse .8s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 .status-val { display: flex; align-items: center; font-family: var(--font-mono); font-size: 10px; }
 .status-val.active { color: var(--green); }
 .status-val.idle   { color: var(--text3); }
+.status-val.warn   { color: var(--amber); }
+.status-val.err    { color: #e05555; }
 
 .sidebar-nav { padding: 10px 8px 4px; display: flex; flex-direction: column; gap: 2px; }
 .nav-section  { font-size: 9px; color: var(--text3); letter-spacing: .1em; font-family: var(--font-mono); padding: 6px 10px 3px; }
@@ -1646,15 +1651,19 @@ textarea::placeholder { color: var(--text3); }
     <div class="api-status">
       <div class="api-row">
         <span class="api-label">GROQ / Llama</span>
-        <span class="status-val active"><span class="dot on"></span>Online · Free</span>
+        <span id="sv-groq" class="status-val idle"><span class="dot check"></span>Đang kiểm tra...</span>
       </div>
       <div class="api-row">
-        <span class="api-label">Gemini Flash</span>
-        <span class="status-val active"><span class="dot on"></span>Online · Vision</span>
+        <span class="api-label">Gemini Embed</span>
+        <span id="sv-gemini-embed" class="status-val idle"><span class="dot check"></span>Đang kiểm tra...</span>
       </div>
       <div class="api-row">
-        <span class="api-label">Local Offline</span>
-        <span class="status-val idle"><span class="dot off"></span>Standby</span>
+        <span class="api-label">Gemini Vision</span>
+        <span id="sv-gemini-vision" class="status-val idle"><span class="dot check"></span>Đang kiểm tra...</span>
+      </div>
+      <div class="api-row" style="margin-top:1px">
+        <span id="sv-keysrc" style="color:var(--text3);font-size:9px;font-family:var(--font-mono)"></span>
+        <button onclick="checkApiStatus()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0;line-height:1" title="Kiểm tra lại API">↺</button>
       </div>
     </div>
 
@@ -3697,6 +3706,7 @@ async function testAndSaveKey(provider) {
       showNotif('✓ Gemini API key hợp lệ và đã lưu', 'success');
     }
     updateSettingsStatusDisplay();
+    checkApiStatus();
   } catch (e) {
     showKeyStatus(provider, 'error', `✗ ${e.message}`);
     showNotif(`${provider.toUpperCase()} key lỗi: ${e.message}`, 'error');
@@ -3714,6 +3724,56 @@ function updateSettingsStatusDisplay() {
     👁 Gemini (Vision + Embedding): ${geminiSrc}<br>
     <span style="color:var(--text3);font-size:11px">Key được lưu trên trình duyệt của bạn, không gửi đến server ngoài API call.</span>
   `;
+}
+
+function setStatusRow(id, state, label) {
+  const el = document.getElementById(`sv-${id}`);
+  if (!el) return;
+  const dotClass = { ok: 'on', warn: 'warn', err: 'err', check: 'check' }[state] || 'off';
+  const valClass = { ok: 'active', warn: 'warn', err: 'err' }[state] || 'idle';
+  el.className = `status-val ${valClass}`;
+  el.innerHTML = `<span class="dot ${dotClass}"></span>${label}`;
+}
+
+async function checkApiStatus() {
+  setStatusRow('groq', 'check', 'Kiểm tra...');
+  setStatusRow('gemini-embed', 'check', 'Kiểm tra...');
+  setStatusRow('gemini-vision', 'check', 'Kiểm tra...');
+  try {
+    const res = await fetch('/api/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userKeys: getUserKeys() })
+    });
+    if (!res.ok) throw new Error('status check failed');
+    const data = await res.json();
+
+    const embedLabel = data.gemini_embed.label + (data.gemini_embed.state === 'ok' ? ' · Embed' : '');
+    const visionLabel = data.gemini_vision.label + (data.gemini_vision.state === 'ok' ? ' · Vision' : '');
+    setStatusRow('groq', data.groq.state, data.groq.label);
+    setStatusRow('gemini-embed', data.gemini_embed.state, embedLabel);
+    setStatusRow('gemini-vision', data.gemini_vision.state, visionLabel);
+
+    // Show key source indicator
+    const srcEl = document.getElementById('sv-keysrc');
+    if (srcEl) {
+      const src = data.key_source;
+      const gSrc = src.gemini === 'user' ? 'key riêng' : src.gemini === 'server' ? 'key hệ thống' : 'chưa cấu hình';
+      srcEl.textContent = `Gemini: ${gSrc}`;
+    }
+
+    // Warn if Gemini Embed is broken — this blocks document ingestion
+    if (data.gemini_embed.state !== 'ok') {
+      const msg = data.gemini_embed.state === 'off'
+        ? '⚠️ Chưa cấu hình Gemini key — tài liệu upload sẽ không được lưu'
+        : `⚠️ Gemini Embed lỗi: ${data.gemini_embed.label} — không thể index tài liệu`;
+      showNotif(msg, 'info');
+    }
+  } catch {
+    setStatusRow('groq', 'warn', 'Không kết nối được');
+    setStatusRow('gemini-embed', 'warn', 'Không kết nối được');
+    setStatusRow('gemini-vision', 'warn', 'Không kết nối được');
+  }
 }
 // ── Re-embed (Phase 2) ──
 async function startReembed() {
@@ -3826,6 +3886,7 @@ loadProjectsFromSupabase();
 renderChatHistory();
 renderRoleTabs();
 updateSuggestions(currentRole);
+checkApiStatus();
 
 function openImagePreview(url) {
   const overlay = document.getElementById('img-preview-overlay');
